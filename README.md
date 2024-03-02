@@ -51,3 +51,13 @@ urls := []Link{
 #### TODO
 - бэкенд сервер для поиска.
 - фронтенд для поиска.
+
+### Используемые библиотеки
+
+- [Manticorer Go client. Сlient for Manticore Search.](https://github.com/manticoresoftware/manticoresearch-go)
+- [Gofeed: A Robust Feed Parser for Golang](https://github.com/mmcdole/gofeed)
+- [Colly Lightning Fast and Elegant Scraping Framework for Gophers](https://github.com/gocolly/colly/tree/master)
+- [goquery - a little like that j-thing, only in Go](https://github.com/PuerkitoBio/goquery)
+
+Полный список зависимостей в файле [go.mod](https://github.com/terratensor/feed-parser/blob/a279808983af6ade816521b8d4c2751ac2de45d5/go.mod)
+    
