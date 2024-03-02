@@ -1,5 +1,22 @@
 version: "3.9"
 services:
+
+  traefik:
+    image: traefik:2.4
+    command:
+      --providers.docker=true
+      --providers.docker.exposedByDefault=false
+      --entryPoints.http.address=:80
+    ports:
+      - "80:80"
+    networks:
+      - traefik-public
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+
   manticore:
     image: manticoresearch/manticore
     restart: always
@@ -18,3 +35,46 @@ services:
     environment:
       - EXTRA=1
       - searchd_query_log=/var/log/manticore/query.log
+    volumes:
+      - manticore:/var/lib/manticore
+      - manticore:/var/log/manticore
+
+  frontend:
+    build:
+      context: frontend/docker/development/nginx
+    networks:
+      - traefik-public
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.frontend.rule=Host(`localhost`) || Host(`www.localhost`)
+      - traefik.http.routers.frontend.entryPoints=http
+      - traefik.http.services.frontend.loadBalancer.server.port=80
+      - traefik.http.middlewares.frontend-redirect.redirectRegex.regex=^(https?://)www.localhost/(.*)$$
+      - traefik.http.middlewares.frontend-redirect.redirectRegex.replacement=$${1}localhost/$${2}
+      - traefik.http.middlewares.frontend-redirect.redirectRegex.permanent=true
+      - traefik.http.routers.frontend.middlewares=frontend-redirect
+
+  frontend-node:
+    build:
+      context: frontend/docker/development/node
+    environment:
+      WDS_SOCKET_PORT: 0
+    volumes:
+      - ./frontend:/app
+    command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && yarn start"
+    tty: true
+
+  frontend-node-cli:
+    build:
+      context: frontend/docker/development/node
+    volumes:
+      - ./frontend:/app
+
+volumes:
+  manticore:
+
+networks:
+  traefik-public:
+    name: traefik-public
