@@ -56,8 +56,8 @@ func main() {
 		//{Url: "https://mid.ru/cn/rss.php", Lang: "ru", ResourceID: 1},
 		//{Url: "https://mid.ru/ar/rss.php", Lang: "ru", ResourceID: 1},
 		{Url: "https://function.mil.ru/rss_feeds/reference_to_general.htm?contenttype=xml", Lang: "ru", ResourceID: 3},
-		{Url: "https://tass.ru/rss/v2.xml", Lang: "ru", ResourceID: 4},
-		{Url: "https://tass.com/rss/v2.xml", Lang: "en", ResourceID: 4},
+		//{Url: "https://tass.ru/rss/v2.xml", Lang: "ru", ResourceID: 4},
+		//{Url: "https://tass.com/rss/v2.xml", Lang: "en", ResourceID: 4},
 	}
 
 	for _, url := range urls {

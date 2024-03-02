@@ -3,6 +3,7 @@ package workerpool
 import (
 	"context"
 	"fmt"
+	"github.com/terratensor/feed-parser/internal/crawler"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
 	"github.com/terratensor/feed-parser/internal/storage/manticore"
@@ -59,6 +60,9 @@ func process(workerID int, task *Task) {
 		logger.Error("failed find entry by url", sl.Err(err))
 	}
 	if dbe == nil {
+
+		e = visitUrl(e)
+
 		id, err := store.Storage.Insert(context.Background(), e)
 		if err != nil {
 			logger.Error(
@@ -76,6 +80,7 @@ func process(workerID int, task *Task) {
 	} else {
 		if !matchTimes(dbe, *e) {
 			e.ID = dbe.ID
+			e = visitUrl(e)
 			log.Printf("before update url: %v, updated: %v", e.Url, e.Updated)
 			err = store.Storage.Update(context.Background(), e)
 			if err != nil {
@@ -98,6 +103,17 @@ func process(workerID int, task *Task) {
 	}
 
 	task.Err = task.f(dbe)
+}
+
+func visitUrl(e *feed.Entry) *feed.Entry {
+	switch e.ResourceID {
+	case 2:
+		e = crawler.VisitMid(e)
+	case 3:
+		e = crawler.VisitMil(e)
+	}
+
+	return e
 }
 
 func matchTimes(dbe *feed.Entry, e feed.Entry) bool {
