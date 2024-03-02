@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  manticore:
+    image: manticoresearch/manticore
+    restart: always
+    ports:
+      - "9306:9306"
+      - "9308:9308"
+      - "9312:9312"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    environment:
+      - EXTRA=1
+      - searchd_query_log=/var/log/manticore/query.log
