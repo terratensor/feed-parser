@@ -16,5 +16,10 @@
   },
   "Footer": {
     "title": "feed-parser 2024"
+  },
+  "LocalSwitcher": {
+    "ru": "Russisch",
+    "en": "Englisch",
+    "de": "Deutsch"
   }
 }
