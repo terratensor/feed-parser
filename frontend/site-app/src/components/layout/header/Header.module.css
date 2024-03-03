@@ -1,0 +1,14 @@
+.header {
+    display: flex;
+    align-items: center;
+}
+
+.header a {
+    color: #fff;
+    margin: 0 10px;
+    transition: color .4s ease-in-out;
+}
+
+.header a:hover {
+    color: #c353c3;
+}
