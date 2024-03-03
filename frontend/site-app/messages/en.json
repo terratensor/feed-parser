@@ -1,0 +1,20 @@
+{
+  "Index": {
+    "title": "Hello world!"
+  },
+  "IndexPage": {
+    "title": "feed-parser",
+    "description": "The service allows you to periodically poll a list of RSS feeds of sites at a given period of time, for example, 1-2 minutes. The service reads the feed, parses it, creates an Entry object from the feed elements, which is stored in the ManticoreSearch index. If there is no content in the feed, then the service follows the post link, downloads the page, parses it and creates an object of the standard Entry type. At the moment, parsers for the sites mid.ru, kremlin.ru, mil.ru and their language versions have been implemented."
+  },
+  "NotFoundPage": {
+    "title": "Page Not Found",
+    "description": "Oops! The page you requested could not be found."
+  },
+  "Navigation": {
+    "home": "Home",
+    "about": "About"
+  },
+  "Footer": {
+    "title": "feed-parser 2024"
+  }
+}
