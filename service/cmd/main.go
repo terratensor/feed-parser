@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"github.com/mmcdole/gofeed"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
-	"github.com/terratensor/feed-parser/internal/workerpool"
+	"github.com/terratensor/feed-parser/service/internal/entities/feed"
+	"github.com/terratensor/feed-parser/service/internal/workerpool"
 	"log"
 	"math/rand"
 	"sync"

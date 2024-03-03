@@ -3,7 +3,7 @@ package crawler
 import (
 	"fmt"
 	"github.com/gocolly/colly/v2"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/service/internal/entities/feed"
 	"log"
 	"math/rand"
 	"strings"
