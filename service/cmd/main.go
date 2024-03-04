@@ -61,6 +61,7 @@ func main() {
 	}
 
 	for _, url := range urls {
+		waiting(3)
 		wg.Add(1)
 		go runParser(url, ch, fp, wg)
 	}
@@ -92,13 +93,15 @@ func main() {
 
 func runParser(url Link, ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) {
 	defer wg.Done()
+	log.Printf("started parser for given url: %v", url.Url)
 	for {
 
 		gf, err := fp.ParseURL(url.Url)
 		if err != nil {
-			log.Printf("ERROR: %v", err)
+			log.Printf("ERROR: %v, %v", err, url.Url)
 			continue
 		}
+		log.Printf("fetched the contents of a given url %v", url.Url)
 		entries := makeEntries(gf.Items, url)
 
 		select {
@@ -137,4 +140,10 @@ func makeEntries(items []*gofeed.Item, url Link) []feed.Entry {
 	}
 
 	return entries
+}
+
+func waiting(i int) {
+	n := 1 * rand.Intn(i)
+	d := time.Duration(n)
+	time.Sleep(d * time.Second)
 }
