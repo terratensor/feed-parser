@@ -84,9 +84,9 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 	// iterating over the list of industry card
 
 	// HTML elements
-	//c.Limit(&colly.LimitRule{
-	//	RandomDelay: 20 * time.Second,
-	//})
+	c.Limit(&colly.LimitRule{
+		RandomDelay: 10 * time.Second,
+	})
 
 	c.OnHTML("div.photo-content", func(e *colly.HTMLElement) {
 		log.Printf("Crawling Url %#v", entry.Url)
