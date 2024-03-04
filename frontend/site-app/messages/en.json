@@ -1,0 +1,54 @@
+{
+  "Index": {
+    "title": "Hello world!"
+  },
+  "IndexPage": {
+    "title": "feed-parser",
+    "description": "The service allows you to periodically poll a list of RSS feeds of sites at a given period of time, for example, 1-2 minutes. The service reads the feed, parses it, creates an Entry object from the feed elements, which is stored in the ManticoreSearch index. If there is no content in the feed, then the service follows the post link, downloads the page, parses it and creates an object of the standard Entry type. At the moment, parsers for the sites mid.ru, kremlin.ru, mil.ru and their language versions have been implemented."
+  },
+  "Footer": {
+    "title": "feed-parser 2024"
+  },
+  "LocalSwitcher": {
+    "ru": "Russian",
+    "en": "English",
+    "de": "German"
+  },
+  "PathnamesPage": {
+    "title": "Pathnames",
+    "description": "<p>The pathnames are internationalized too.</p><p>If you're using the default language English, you'll see <code>/en/pathnames</code> in the browser address bar on this page.</p><p>If you change the locale to German, the URL is localized accordingly (<code>/de/pfadnamen</code>).</p>"
+  },
+  "Error": {
+    "title": "Something went wrong!",
+    "description": "<p>We've unfortunately encountered an error.</p><p>You can try to <retry>reload the page</retry> you were visiting.</p>"
+  },
+  "NotFoundPage": {
+    "title": "Page not found",
+    "description": "Please double-check the browser address bar or use the navigation to go to a known page."
+  },
+  "LocaleLayout": {
+    "title": "next-intl example"
+  },
+  "LocaleSwitcher": {
+    "label": "Change language",
+    "locale": "{locale, select, ru {RU Russian} de {🇩🇪 Deutsch} en {🇺🇸 English} other {Unknown}}"
+  },
+  "Navigation": {
+    "home": "Home",
+    "pathnames": "Pathnames"
+  },
+  "PageLayout": {
+    "links": {
+      "docs": {
+        "title": "Docs",
+        "description": "Learn more about next-intl in the official docs.",
+        "href": "https://next-intl-docs.vercel.app/"
+      },
+      "source": {
+        "title": "Source code",
+        "description": "Browse the source code of this example on GitHub.",
+        "href": "https://github.com/amannn/next-intl/tree/main/examples/example-app-router"
+      }
+    }
+  }
+}
