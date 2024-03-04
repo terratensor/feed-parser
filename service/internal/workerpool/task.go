@@ -61,7 +61,11 @@ func process(workerID int, task *Task) {
 	}
 	if dbe == nil {
 
-		e = visitUrl(e)
+		e, err = visitUrl(e)
+		if err != nil {
+			log.Println("finishing task processing without updating data in manticoresearch")
+			return
+		}
 
 		id, err := store.Storage.Insert(context.Background(), e)
 		if err != nil {
@@ -80,7 +84,11 @@ func process(workerID int, task *Task) {
 	} else {
 		if !matchTimes(dbe, *e) {
 			e.ID = dbe.ID
-			e = visitUrl(e)
+			e, err = visitUrl(e)
+			if err != nil {
+				log.Println("finishing task processing without updating data in manticoresearch")
+				return
+			}
 			log.Printf("before update url: %v, updated: %v", e.Url, e.Updated)
 			err = store.Storage.Update(context.Background(), e)
 			if err != nil {
@@ -105,15 +113,27 @@ func process(workerID int, task *Task) {
 	task.Err = task.f(dbe)
 }
 
-func visitUrl(e *feed.Entry) *feed.Entry {
+// visitUrl вызывает crawler, который парсит контент по ссылке,
+// если crawler вернет ошибку, например в следствии read: connection reset by peer,
+// соединение с сайтом разорвалось, то функция возвращает запись entry без изменений,
+// если crawler вернул новую спарсенную entry (ce), то функция возвращает обновленную entry
+func visitUrl(e *feed.Entry) (*feed.Entry, error) {
 	switch e.ResourceID {
 	case 2:
-		e = crawler.VisitMid(e)
+		ce, err := crawler.VisitMid(e)
+		if err != nil {
+			return nil, err
+		}
+		return ce, nil
 	case 3:
-		e = crawler.VisitMil(e)
+		ce, err := crawler.VisitMil(e)
+		if err != nil {
+			return e, nil
+		}
+		return ce, nil
 	}
 
-	return e
+	return e, nil
 }
 
 func matchTimes(dbe *feed.Entry, e feed.Entry) bool {

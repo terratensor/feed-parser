@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func VisitMil(entry *feed.Entry) *feed.Entry {
+func VisitMil(entry *feed.Entry) (*feed.Entry, error) {
 	c := colly.NewCollector()
 
 	c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
@@ -60,12 +60,14 @@ func VisitMil(entry *feed.Entry) *feed.Entry {
 	err := c.Visit(entry.Url)
 	if err != nil {
 		log.Printf("Crawler Error: %v", err)
+		return nil, err
 	}
 
-	return entry
+	return entry, nil
 }
 
-func VisitMid(entry *feed.Entry) *feed.Entry {
+func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
+
 	c := colly.NewCollector()
 
 	//c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
@@ -77,9 +79,9 @@ func VisitMid(entry *feed.Entry) *feed.Entry {
 	// iterating over the list of industry card
 
 	// HTML elements
-	//c.Limit(&colly.LimitRule{
-	//	RandomDelay: 20 * time.Second,
-	//})
+	c.Limit(&colly.LimitRule{
+		RandomDelay: 10 * time.Second,
+	})
 
 	c.OnHTML("div.photo-content", func(e *colly.HTMLElement) {
 		log.Printf("Crawling Url %#v", entry.Url)
@@ -116,6 +118,7 @@ func VisitMid(entry *feed.Entry) *feed.Entry {
 		log.Printf("Mid announcements: %v", entry)
 	})
 
+	// ожидаем после запроса рандомно 1-10 секунд
 	n := 1 + rand.Intn(10)
 	d := time.Duration(n)
 	time.Sleep(d * time.Second)
@@ -124,7 +127,8 @@ func VisitMid(entry *feed.Entry) *feed.Entry {
 	err := c.Visit(entry.Url)
 	if err != nil {
 		log.Printf("Crawler Error: %v", err)
+		return nil, err
 	}
 
-	return entry
+	return entry, nil
 }
