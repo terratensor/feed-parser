@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func VisitMil(entry *feed.Entry) *feed.Entry {
+func VisitMil(entry *feed.Entry) (*feed.Entry, error) {
 	c := colly.NewCollector()
 
 	c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
@@ -60,12 +60,19 @@ func VisitMil(entry *feed.Entry) *feed.Entry {
 	err := c.Visit(entry.Url)
 	if err != nil {
 		log.Printf("Crawler Error: %v", err)
+		return nil, err
 	}
 
-	return entry
+	return entry, nil
 }
 
-func VisitMid(entry *feed.Entry) *feed.Entry {
+func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
+
+	// ожидаем перед запросом рандомно 1-5 секунд
+	n := 1 + rand.Intn(5)
+	d := time.Duration(n)
+	time.Sleep(d * time.Second)
+
 	c := colly.NewCollector()
 
 	//c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
@@ -116,15 +123,17 @@ func VisitMid(entry *feed.Entry) *feed.Entry {
 		log.Printf("Mid announcements: %v", entry)
 	})
 
-	n := 1 + rand.Intn(10)
-	d := time.Duration(n)
+	// ожидаем после запроса рандомно 1-5 секунд
+	n = 1 + rand.Intn(10)
+	d = time.Duration(n)
 	time.Sleep(d * time.Second)
 
 	//c.Visit("https://function.mil.ru:443/news_page/country/more.htm?id=12502939@egNews")
 	err := c.Visit(entry.Url)
 	if err != nil {
 		log.Printf("Crawler Error: %v", err)
+		return nil, err
 	}
 
-	return entry
+	return entry, nil
 }

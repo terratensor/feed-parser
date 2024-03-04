@@ -105,12 +105,24 @@ func process(workerID int, task *Task) {
 	task.Err = task.f(dbe)
 }
 
+// visitUrl вызывает crawler, который парсит контент по ссылке,
+// если crawler вернет ошибку, например в следствии read: connection reset by peer,
+// соединение с сайтом разорвалось, то функция возвращает запись entry без изменений,
+// если crawler вернул новую спарсенную entry (ce), то функция возвращает обновленную entry
 func visitUrl(e *feed.Entry) *feed.Entry {
 	switch e.ResourceID {
 	case 2:
-		e = crawler.VisitMid(e)
+		ce, err := crawler.VisitMid(e)
+		if err != nil {
+			return e
+		}
+		return ce
 	case 3:
-		e = crawler.VisitMil(e)
+		ce, err := crawler.VisitMil(e)
+		if err != nil {
+			return e
+		}
+		return ce
 	}
 
 	return e
