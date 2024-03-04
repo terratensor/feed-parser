@@ -6,14 +6,6 @@
     "title": "feed-parser",
     "description": "Сервис позволяет периодически в заданный промежуток времени, например, 1-2 минуты опрашивать список RSS лент сайтов. Сервис читает ленту, разбирает ее, создает из элементов ленты объект единого вида Entry, который сохраняет в индексе ManticoreSearch. Если в ленте нет контента, то сервис идет по ссылке записи, скачивает страницу, разбирает ее и создает объект стандартного вида Entry. На данный момент реализованы парсеры сайтов mid.ru, kremlin.ru, mil.ru и их языковые версии."
   },
-  "NotFoundPage": {
-    "title": "Страница не найдена",
-    "description": "Запрашиваемая страница не существует."
-  },
-  "Navigation": {
-    "home": "Главная",
-    "about": "О проекте"
-  },
   "Footer": {
     "title": "feed-parser 2024"
   },
@@ -21,5 +13,42 @@
     "ru": "Русский",
     "en": "Английский",
     "de": "Немецкий"
+  },
+  "PathnamesPage": {
+    "title": "Pathnames",
+    "description": "<p>The pathnames are internationalized too.</p><p>If you're using the default language English, you'll see <code>/en/pathnames</code> in the browser address bar on this page.</p><p>If you change the locale to German, the URL is localized accordingly (<code>/de/pfadnamen</code>).</p>"
+  },
+  "Error": {
+    "title": "Something went wrong!",
+    "description": "<p>We've unfortunately encountered an error.</p><p>You can try to <retry>reload the page</retry> you were visiting.</p>"
+  },
+  "NotFoundPage": {
+    "title": "Страница не найдена",
+    "description": "Пожалуйста, проверьте адресную строку браузера или воспользуйтесь навигацией, чтобы перейти на известную страницу."
+  },
+  "LocaleLayout": {
+    "title": "next-intl example"
+  },
+  "LocaleSwitcher": {
+    "label": "Change language",
+    "locale": "{locale, select, ru {RU Русский} de {🇩🇪 Немецкий} en {🇺🇸 Английский} other {Unknown}}"
+  },
+  "Navigation": {
+    "home": "Главная",
+    "pathnames": "Pathnames"
+  },
+  "PageLayout": {
+    "links": {
+      "docs": {
+        "title": "Docs",
+        "description": "Learn more about next-intl in the official docs.",
+        "href": "https://next-intl-docs.vercel.app/"
+      },
+      "source": {
+        "title": "Source code",
+        "description": "Browse the source code of this example on GitHub.",
+        "href": "https://github.com/amannn/next-intl/tree/main/examples/example-app-router"
+      }
+    }
   }
 }
