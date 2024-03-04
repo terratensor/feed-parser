@@ -81,7 +81,7 @@ func VisitMid(entry *feed.Entry) *feed.Entry {
 	//	RandomDelay: 20 * time.Second,
 	//})
 
-	c.OnHTML("div.page-body", func(e *colly.HTMLElement) {
+	c.OnHTML("div.photo-content", func(e *colly.HTMLElement) {
 		log.Printf("Crawling Url %#v", entry.Url)
 
 		title := e.ChildText("h1.photo-content__title")
@@ -95,8 +95,25 @@ func VisitMid(entry *feed.Entry) *feed.Entry {
 		entry.Content = content
 		entry.Number = number
 
-		log.Printf("colly: %v", entry)
+		log.Printf("Mid photo-content: %v", entry)
+	})
 
+	// Если опубликовано как анонс
+	c.OnHTML("ul.announcements", func(e *colly.HTMLElement) {
+		log.Printf("Crawling Url %#v", entry.Url)
+
+		title := e.ChildText("h3.announcement__title")
+
+		number := e.ChildText("div.announcement__doc-num")
+
+		// filter out unwanted data
+		content := e.ChildText("div.announcement__text > p")
+
+		entry.Title = title
+		entry.Content = content
+		entry.Number = number
+
+		log.Printf("Mid announcements: %v", entry)
 	})
 
 	n := 1 + rand.Intn(10)
