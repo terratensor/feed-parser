@@ -17,6 +17,7 @@ type Entry struct {
 	Author     string     `json:"author"`
 	Number     string     `json:"number"`
 	ResourceID int        `json:"resource_id"`
+	Created    *time.Time `json:"created"`
 }
 
 type StorageInterface interface {

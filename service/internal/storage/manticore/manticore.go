@@ -51,6 +51,7 @@ type DBEntry struct {
 	Author     string `json:"author"`
 	Number     string `json:"number"`
 	ResourceID int    `json:"resource_id"`
+	Created    int64  `json:"created"`
 }
 
 type Client struct {
@@ -58,35 +59,32 @@ type Client struct {
 	Index     string
 }
 
+// NewDBEntry только для создания новой записи insert, в этой записи присваивается поле created,
+// далее это поле никогда не изменяется при редактировании записи.
 func NewDBEntry(entry *feed.Entry) *DBEntry {
-	var updated int64
-	if entry.Updated == nil {
-		updated = 0
-	} else {
-		updated = entry.Updated.Unix()
-	}
 
-	var published int64
-	if entry.Published == nil {
-		published = 0
-	} else {
-		published = entry.Published.Unix()
-	}
+	created := time.Now()
 
 	dbe := &DBEntry{
 		Language:   entry.Language,
 		Title:      entry.Title,
 		Url:        entry.Url,
-		Updated:    updated,
-		Published:  published,
+		Updated:    castTime(entry.Updated),
+		Published:  castTime(entry.Published),
 		Summary:    entry.Summary,
 		Content:    entry.Content,
 		Author:     entry.Author,
 		Number:     entry.Number,
 		ResourceID: entry.ResourceID,
+		Created:    castTime(&created),
 	}
 
 	return dbe
+}
+
+// castTime use a conditional operator to eliminate the branching logic. This refactored version uses the UnixNano method to directly convert the time to nanoseconds, and then divides by the number of nanoseconds in a second to get the result in seconds. This approach eliminates the conditional check and can be more efficient for performance-critical code.
+func castTime(value *time.Time) int64 {
+	return value.UnixNano() / int64(time.Second)
 }
 
 func New(tbl string) (*Client, error) {
@@ -125,7 +123,7 @@ func New(tbl string) (*Client, error) {
 
 func createTable(apiClient *openapiclient.APIClient, tbl string) error {
 
-	query := fmt.Sprintf(`create table %v(language string, url string, title text, summary text, content text, published timestamp, updated timestamp, author string, number string, resource_id int) engine='columnar' min_infix_len='3' index_exact_words='1' morphology='stem_en, stem_ru, libstemmer_de, libstemmer_fr, libstemmer_es, libstemmer_pt' html_remove_elements = 'style, script' html_strip = '1' index_sp='1'`, tbl)
+	query := fmt.Sprintf(`create table %v(language string, url string, title text, summary text, content text, published timestamp, updated timestamp, author string, number string, resource_id int, created timestamp) engine='columnar' min_infix_len='3' index_exact_words='1' morphology='stem_en, stem_ru, libstemmer_de, libstemmer_fr, libstemmer_es, libstemmer_pt' html_remove_elements = 'style, script' html_strip = '1' index_sp='1'`, tbl)
 
 	sqlRequest := apiClient.UtilsAPI.Sql(context.Background()).Body(query)
 	_, _, err := apiClient.UtilsAPI.SqlExecute(sqlRequest)
@@ -168,7 +166,19 @@ func (c *Client) Insert(ctx context.Context, entry *feed.Entry) (*int64, error) 
 }
 
 func (c *Client) Update(ctx context.Context, entry *feed.Entry) error {
-	dbe := NewDBEntry(entry)
+
+	dbe := &DBEntry{
+		Language:   entry.Language,
+		Title:      entry.Title,
+		Url:        entry.Url,
+		Updated:    castTime(entry.Updated),
+		Published:  castTime(entry.Published),
+		Summary:    entry.Summary,
+		Content:    entry.Content,
+		Author:     entry.Author,
+		Number:     entry.Number,
+		ResourceID: entry.ResourceID,
+	}
 
 	//marshal into JSON buffer
 	buffer, err := json.Marshal(dbe)
@@ -251,10 +261,10 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 	if dbe == nil {
 		return nil, nil
 	}
-	//log.Printf("id %d\n", *id)
-	//log.Printf("dbe %v\n", dbe)
+
 	updated := time.Unix(dbe.Updated, 0)
 	published := time.Unix(dbe.Published, 0)
+	created := time.Unix(dbe.Created, 0)
 
 	ent := &feed.Entry{
 		ID:         id,
@@ -268,6 +278,7 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 		Author:     dbe.Author,
 		Number:     dbe.Number,
 		ResourceID: dbe.ResourceID,
+		Created:    &created,
 	}
 
 	return ent, nil
