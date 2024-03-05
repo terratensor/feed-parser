@@ -31,7 +31,7 @@ func NewTaskStorage() *feed.Entries {
 
 	manticoreClient, err := manticore.New("feed")
 	if err != nil {
-		log.Fatalf("failed to initialize manticore client, %v", err)
+		log.Printf("failed to initialize manticore client, %v", err)
 		os.Exit(1)
 	}
 
@@ -148,8 +148,8 @@ func matchTimes(dbe *feed.Entry, e feed.Entry) bool {
 	eTime := e.Updated.In(loc)
 
 	if dbeTime != eTime {
-		log.Printf("`updated` fields do not match dbe updated %v", dbeTime)
-		log.Printf("`updated` fields do not match prs updated %v", eTime)
+		log.Printf("Url %v `updated` fields do not match dbe updated %v", dbe.Url, dbeTime)
+		log.Printf("Url %v `updated` fields do not match prs updated %v", e.Url, eTime)
 		return false
 	}
 	return true
