@@ -42,6 +42,7 @@ func main() {
 	wg := &sync.WaitGroup{}
 
 	fp := gofeed.NewParser()
+	//fp.UserAgent = "PostmanRuntime/7.36.3"
 	ch := make(chan feed.Entry, 20)
 
 	urls := []Link{
@@ -61,7 +62,6 @@ func main() {
 	}
 
 	for _, url := range urls {
-		waiting(3)
 		wg.Add(1)
 		go runParser(url, ch, fp, wg)
 	}
@@ -93,9 +93,14 @@ func main() {
 
 func runParser(url Link, ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) {
 	defer wg.Done()
-	log.Printf("started parser for given url: %v", url.Url)
+
 	for {
 
+		n := 60 + rand.Intn(150)
+		d := time.Duration(n)
+		time.Sleep(d * time.Second)
+
+		log.Printf("started parser for given url: %v", url.Url)
 		gf, err := fp.ParseURL(url.Url)
 		if err != nil {
 			log.Printf("ERROR: %v, %v", err, url.Url)
@@ -113,10 +118,6 @@ func runParser(url Link, ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGro
 		for _, entry := range entries {
 			ch <- entry
 		}
-
-		n := 60 + rand.Intn(20)
-		d := time.Duration(n)
-		time.Sleep(d * time.Second)
 	}
 }
 
