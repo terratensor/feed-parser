@@ -82,9 +82,12 @@ func NewDBEntry(entry *feed.Entry) *DBEntry {
 	return dbe
 }
 
-// castTime use a conditional operator to eliminate the branching logic. This refactored version uses the UnixNano method to directly convert the time to nanoseconds, and then divides by the number of nanoseconds in a second to get the result in seconds. This approach eliminates the conditional check and can be more efficient for performance-critical code.
 func castTime(value *time.Time) int64 {
-	return value.UnixNano() / int64(time.Second)
+	if value == nil {
+		return 0
+	} else {
+		return value.Unix()
+	}
 }
 
 func New(tbl string) (*Client, error) {
@@ -178,6 +181,7 @@ func (c *Client) Update(ctx context.Context, entry *feed.Entry) error {
 		Author:     entry.Author,
 		Number:     entry.Number,
 		ResourceID: entry.ResourceID,
+		Created:    castTime(entry.Created),
 	}
 
 	//marshal into JSON buffer
