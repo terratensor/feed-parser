@@ -89,6 +89,9 @@ func process(workerID int, task *Task) {
 				log.Println("finishing task processing without updating data in manticoresearch")
 				return
 			}
+			// Обязательно присваиваем created дату из БД, иначе будет перезаписан 0
+			e.Created = dbe.Created
+
 			log.Printf("before update url: %v, updated: %v", e.Url, e.Updated)
 			err = store.Storage.Update(context.Background(), e)
 			if err != nil {
