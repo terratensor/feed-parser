@@ -91,10 +91,19 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		number := e.ChildText("p.article-line__note.article-line__note_small")
 
 		// filter out unwanted data
-		content := e.ChildText("div.text.article-content")
+		content := e.ChildTexts("div.text.article-content p")
+
+		var sb strings.Builder
+		for _, con := range content {
+			if len(con) > 0 {
+				sb.WriteString("<p>")
+				sb.WriteString(con)
+				sb.WriteString("</p>")
+			}
+		}
 
 		entry.Title = title
-		entry.Content = content
+		entry.Content = sb.String()
 		entry.Number = number
 
 		log.Printf("Mid photo-content: %v", entry)
@@ -109,10 +118,19 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		number := e.ChildText("div.announcement__doc-num")
 
 		// filter out unwanted data
-		content := e.ChildText("div.announcement__text > p")
+		content := e.ChildTexts("div.announcement__text > p")
+
+		var sb strings.Builder
+		for _, con := range content {
+			if len(con) > 0 {
+				sb.WriteString("<p>")
+				sb.WriteString(con)
+				sb.WriteString("</p>")
+			}
+		}
 
 		entry.Title = title
-		entry.Content = content
+		entry.Content = sb.String()
 		entry.Number = number
 
 		log.Printf("Mid announcements: %v", entry)
