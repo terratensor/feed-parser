@@ -10,6 +10,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -82,7 +83,7 @@ func process(workerID int, task *Task) {
 			slog.String("url", e.Url),
 		)
 	} else {
-		if !matchTimes(dbe, *e) {
+		if needUpdate(dbe, *e) {
 			e.ID = dbe.ID
 			e, err = visitUrl(e)
 			if err != nil {
@@ -139,11 +140,25 @@ func visitUrl(e *feed.Entry) (*feed.Entry, error) {
 	return e, nil
 }
 
-func matchTimes(dbe *feed.Entry, e feed.Entry) bool {
-	// если поле updated nil, значит в ленте это значение не установлено, и значит мы не можем руководствоваться и обновлять
-	// информацию с помощью этого поля, поэтому возвращаем true — совпадение, таска будет выполнена
-	if dbe == nil || e.Updated == nil {
+func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
+	// Если заголовок в базе пустой, значит необходимо произвести обновление записи.
+	// Было замечено, что иногда с сайта МО записи попадают с пустыми значениями заголовка и контента
+	// Хотя позже проверя источник видно, что и заголовок и контент присутствует,
+	// но т.к. на ленте МО нет сигнализации об обновлении записей, принято решение с помощью дополнительных условий
+	// проверять необходимость обновления полученной ранее записи
+	if len(strings.TrimSpace(dbe.Title)) == 0 {
+		log.Printf("WARRNING! Title was empty, UPDATING entry %v", dbe.Url)
 		return true
+	}
+	// Если контент в базе пустой, значит необходимо произвести обновление записи
+	if len(strings.TrimSpace(dbe.Content)) == 0 {
+		log.Printf("WARRNING! Content was empty, UPDATING entry %v", dbe.Url)
+		return true
+	}
+	// если поле updated nil, значит в ленте это значение не установлено, и значит мы не можем руководствоваться и обновлять
+	// информацию с помощью этого поля, поэтому возвращаем false
+	if dbe == nil || e.Updated == nil {
+		return false
 	}
 	// Приводим время в обоих объектах к GMT+4, как на сайте Кремля
 	loc, _ := time.LoadLocation("Etc/GMT-4")
@@ -153,7 +168,8 @@ func matchTimes(dbe *feed.Entry, e feed.Entry) bool {
 	if dbeTime != eTime {
 		log.Printf("Url %v `updated` fields do not match dbe updated %v", dbe.Url, dbeTime)
 		log.Printf("Url %v `updated` fields do not match prs updated %v", e.Url, eTime)
-		return false
+		return true
 	}
-	return true
+
+	return false
 }
