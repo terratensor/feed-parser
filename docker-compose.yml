@@ -1,80 +1,33 @@
 version: "3.9"
 services:
 
-  traefik:
-    image: traefik:2.4
-    command:
-      --providers.docker=true
-      --providers.docker.exposedByDefault=false
-      --entryPoints.http.address=:80
+  registry:
+    image: registry:2
+    container_name: feed-parser-registry
     ports:
-      - "80:80"
-    networks:
-      - traefik-public
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-
-  manticore:
-    image: manticoresearch/manticore
+      - "5002:5002"
     restart: always
-    ports:
-      - "9306:9306"
-      - "9308:9308"
-      - "9312:9312"
-    ulimits:
-      nproc: 65535
-      nofile:
-        soft: 65535
-        hard: 65535
-      memlock:
-        soft: -1
-        hard: -1
-    environment:
-      - EXTRA=1
-      - searchd_query_log=/var/log/manticore/query.log
-    volumes:
-      - manticore:/var/lib/manticore
-      - manticore:/var/log/manticore
-
-  frontend:
-    build:
-      context: frontend/docker/development/nginx
     networks:
-      - traefik-public
-      - default
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.http.routers.frontend.rule=Host(`localhost`) || Host(`www.localhost`)
-      - traefik.http.routers.frontend.entryPoints=http
-      - traefik.http.services.frontend.loadBalancer.server.port=80
-      - traefik.http.middlewares.frontend-redirect.redirectRegex.regex=^(https?://)www.localhost/(.*)$$
-      - traefik.http.middlewares.frontend-redirect.redirectRegex.replacement=$${1}localhost/$${2}
-      - traefik.http.middlewares.frontend-redirect.redirectRegex.permanent=true
-      - traefik.http.routers.frontend.middlewares=frontend-redirect
+      - feed-parser-net
 
-  frontend-node:
+  service:
+    image: ${REGISTRY:-localhost:5002}/feed-parser-service:main-1
     build:
-      context: frontend/docker/development/node
+      context: service
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - registry
+    networks:
+      - feed-parser-net
     environment:
-      WDS_SOCKET_PORT: 0
-    volumes:
-      - ./frontend:/app
-    command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && yarn start"
-    tty: true
-
-  frontend-node-cli:
-    build:
-      context: frontend/docker/development/node
-    volumes:
-      - ./frontend:/app
-
-volumes:
-  manticore:
+      CONFIG_PATH: './config/local.yaml'
+    command: './feed-parser-service'
+    deploy:
+      restart_policy:
+        condition: on-failure
 
 networks:
   traefik-public:
-    name: traefik-public
+    external: true
+  feed-parser-net:
