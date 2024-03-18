@@ -93,6 +93,13 @@ func castTime(value *time.Time) int64 {
 func New(tbl string) (*Client, error) {
 	// Initialize ApiClient
 	configuration := openapiclient.NewConfiguration()
+	configuration.Servers = openapiclient.ServerConfigurations{
+		{
+			URL:         "http://manticore:9308",
+			Description: "Default Manticore Search HTTP",
+		},
+	}
+	//configuration.ServerURL(1, map[string]string{"URL": "http://manticore:9308"})
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	query := fmt.Sprintf(`show tables like '%v'`, tbl)

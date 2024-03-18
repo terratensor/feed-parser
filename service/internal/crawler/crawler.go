@@ -48,7 +48,7 @@ func VisitMil(entry *feed.Entry) (*feed.Entry, error) {
 		entry.Content = sb.String()
 		entry.Author = author
 
-		log.Printf("colly: %v", entry)
+		log.Printf("colly: %v", entry.Title)
 
 	})
 
@@ -106,7 +106,7 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		entry.Content = sb.String()
 		entry.Number = number
 
-		log.Printf("Mid photo-content: %v", entry)
+		log.Printf("Mid photo-content: %v", entry.Title)
 	})
 
 	// Если опубликовано как анонс
@@ -133,7 +133,7 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		entry.Content = sb.String()
 		entry.Number = number
 
-		log.Printf("Mid announcements: %v", entry)
+		log.Printf("Mid announcements: %v", entry.Title)
 	})
 
 	// ожидаем после запроса рандомно 1-10 секунд

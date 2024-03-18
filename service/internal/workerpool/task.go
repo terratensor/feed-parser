@@ -21,10 +21,10 @@ Task содержит все необходимое для обработки з
 */
 
 type Task struct {
-	Err     error
-	Entries *feed.Entries
-	Data    *feed.Entry
-	f       func(interface{}) error
+	Err error
+	//Entries *feed.Entries
+	Data *feed.Entry
+	f    func(interface{}) error
 }
 
 func NewTaskStorage() *feed.Entries {

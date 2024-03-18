@@ -8,31 +8,19 @@ import (
 )
 
 type Config struct {
-	Env            string         `yaml:"env" env-default:"development"`
-	TimeDelay      *time.Duration `yaml:"time_delay" env-default:"1m"`
-	ManticoreIndex string         `yaml:"manticore_index"`
-	SaveToFile     bool           `yaml:"save_to_file"`
-	OutputPath     string         `yaml:"output_path"`
-	Parsers        struct {
-		Kremlin Kremlin `yaml:"kremlin"`
-		//Mid     Mid     `yaml:"mid"`
-		//Mil     Mil     `yaml:"mil"`
-	} `yaml:"parsers"`
+	Env             string         `yaml:"env" env-default:"development"`
+	Workers         int            `yaml:"workers" env-default:"5"`
+	Delay           *time.Duration `yaml:"delay" env-default:"60s"`
+	RandomDelay     *time.Duration `yaml:"random_delay"  env-default:"150s"`
+	ManticoreIndex  string         `yaml:"manticore_index"`
+	EntryChanBuffer int            `yaml:"entry_chan_buffer" env-default:"20"`
+	URLS            []Link         `yaml:"parsers"`
 }
 
-type StartURL struct {
-	Url  string `yaml:"url"`
-	Lang string `yaml:"lang"`
-}
-
-type Kremlin Parser
-type Mid Parser
-type Mil Parser
-
-type Parser struct {
-	ResourceID int            `yaml:"resource_id" env-default:"1"`
-	ParseDelay *time.Duration `yaml:"parse_delay" env-default:"2s"`
-	StartURLs  []StartURL     `yaml:"start_urls"`
+type Link struct {
+	Url        string `yaml:"url"`
+	Lang       string `yaml:"lang"`
+	ResourceID int    `yaml:"resource_id"`
 }
 
 func MustLoad() *Config {
