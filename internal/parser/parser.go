@@ -3,7 +3,7 @@ package parser
 import (
 	"context"
 	"github.com/mmcdole/gofeed"
-	"github.com/terratensor/feed-parser/service/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"log"
 	"math/rand"
 	"sync"

@@ -1,4 +1,4 @@
-module github.com/terratensor/feed-parser/service
+module github.com/terratensor/feed-parser
 
 go 1.21
 

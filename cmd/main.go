@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/mmcdole/gofeed"
-	"github.com/terratensor/feed-parser/service/internal/config"
-	"github.com/terratensor/feed-parser/service/internal/entities/feed"
-	"github.com/terratensor/feed-parser/service/internal/parser"
-	"github.com/terratensor/feed-parser/service/internal/workerpool"
+	"github.com/terratensor/feed-parser/internal/config"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/parser"
+	"github.com/terratensor/feed-parser/internal/workerpool"
 	"log"
 	"sync"
 )

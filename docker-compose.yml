@@ -13,7 +13,6 @@ services:
   service:
     image: ${REGISTRY:-localhost:5002}/feed-parser-service:main-1
     build:
-      context: service
       dockerfile: Dockerfile
     restart: always
     depends_on:
