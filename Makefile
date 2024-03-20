@@ -27,14 +27,14 @@ docker-build:
 		--target builder \
 		--cache-from ${REGISTRY}/feed-parser-service:cache-builder \
 		--tag ${REGISTRY}/feed-parser-service:cache-builder \
-		--file ./service/Dockerfile ./service
+		--file ./Dockerfile .
 
 	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
     	--cache-from ${REGISTRY}/feed-parser-service:cache-builder \
     	--cache-from ${REGISTRY}/feed-parser-service:cache \
     	--tag ${REGISTRY}/feed-parser-service:cache \
     	--tag ${REGISTRY}/feed-parser-service:${IMAGE_TAG} \
-    	--file ./service/Dockerfile ./service
+    	--file ./Dockerfile .
 
 push-build-cache:
 	docker push ${REGISTRY}/feed-parser-service:cache-builder
