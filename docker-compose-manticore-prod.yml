@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+
+  manticore_feed:
+    image: manticoresearch/manticore
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    environment:
+      - EXTRA=1
+    volumes:
+      - manticore:/var/lib/manticore
+      - manticore:/var/log/manticore
+    networks:
+      - feed-parser-net
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+      endpoint_mode: dnsrr
+
+volumes:
+  manticore:
+
+networks:
+  traefik-public:
+    external: true
+  feed-parser-net:
+    name: feed-parser-net
