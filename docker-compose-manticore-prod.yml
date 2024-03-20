@@ -1,14 +1,8 @@
 version: "3.9"
 services:
 
-  manticore:
+  manticore_feed:
     image: manticoresearch/manticore
-    container_name: manticore_feed
-    restart: always
-    ports:
-      - "9306:9306"
-      - "9308:9308"
-      - "9312:9312"
     ulimits:
       nproc: 65535
       nofile:
@@ -24,6 +18,10 @@ services:
       - manticore:/var/log/manticore
     networks:
       - feed-parser-net
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+      endpoint_mode: dnsrr
 
 volumes:
   manticore:
