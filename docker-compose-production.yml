@@ -24,3 +24,4 @@ networks:
     external: true
   feed-parser-net:
     name: feed-parser-net
+    external: true
