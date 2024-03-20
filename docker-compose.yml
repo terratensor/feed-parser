@@ -31,3 +31,4 @@ networks:
   traefik-public:
     external: true
   feed-parser-net:
+    name: feed-parser-net

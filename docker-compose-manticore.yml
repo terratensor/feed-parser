@@ -3,7 +3,7 @@ services:
 
   manticore:
     image: manticoresearch/manticore
-    container_name: feed-parser-manticore
+    container_name: manticore_feed
     restart: always
     ports:
       - "9306:9306"
@@ -32,3 +32,4 @@ networks:
   traefik-public:
     external: true
   feed-parser-net:
+    name: feed-parser-net
