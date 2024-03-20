@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+
+  service:
+    image: ${REGISTRY}/feed-parser-service:${IMAGE_TAG}
+    build:
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - registry
+    networks:
+      - feed-parser-net
+    environment:
+      CONFIG_PATH: './config/local.yaml'
+    command: './feed-parser-service'
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+      restart_policy:
+        condition: on-failure
+
+networks:
+  traefik-public:
+    external: true
+  feed-parser-net:
+    name: feed-parser-net
