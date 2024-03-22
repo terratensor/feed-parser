@@ -10,6 +10,8 @@ services:
       - registry
     networks:
       - feed-parser-net
+    volumes:
+      - config:/app/config
     environment:
       CONFIG_PATH: './config/local.yaml'
     command: './feed-parser-service'
@@ -27,6 +29,8 @@ services:
       - registry
     networks:
       - feed-parser-net
+    volumes:
+      - config:/app/config
     environment:
       CONFIG_PATH: './config/kremlin/local.yaml'
     command: './feed-kremlin-indexer'
@@ -36,6 +40,9 @@ services:
         constraints: [ node.role == manager ]
       restart_policy:
         condition: none
+
+volumes:
+  config:
 
 networks:
   traefik-public:
