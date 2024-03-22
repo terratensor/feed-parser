@@ -2,6 +2,8 @@ package feed
 
 import (
 	"context"
+	"github.com/mmcdole/gofeed"
+	"github.com/terratensor/feed-parser/internal/model/link"
 	"time"
 )
 
@@ -35,4 +37,26 @@ func NewFeedStorage(store StorageInterface) *Entries {
 	return &Entries{
 		Storage: store,
 	}
+}
+
+func MakeEntries(items []*gofeed.Item, url link.Link) []Entry {
+	var entries []Entry
+
+	for _, item := range items {
+
+		e := &Entry{
+			Language:   url.Lang,
+			Title:      item.Title,
+			Url:        item.Link,
+			Updated:    item.UpdatedParsed,
+			Published:  item.PublishedParsed,
+			Summary:    item.Description,
+			Content:    item.Content,
+			ResourceID: url.ResourceID,
+		}
+
+		entries = append(entries, *e)
+	}
+
+	return entries
 }

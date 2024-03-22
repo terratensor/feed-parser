@@ -4,6 +4,7 @@ import (
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/model/link"
 	"github.com/terratensor/feed-parser/internal/parser"
 	"github.com/terratensor/feed-parser/internal/workerpool"
 	"log"
@@ -22,7 +23,7 @@ func main() {
 	for _, url := range cfg.URLS {
 
 		wg.Add(1)
-		p := parser.NewParser(parser.Link{
+		p := parser.NewParser(link.Link{
 			Url:        url.Url,
 			Lang:       url.Lang,
 			ResourceID: url.ResourceID,
@@ -33,7 +34,7 @@ func main() {
 
 	var allTask []*workerpool.Task
 
-	pool := workerpool.NewPool(allTask, 5)
+	pool := workerpool.NewPool(allTask, cfg.Workers)
 
 	go func() {
 		for {
