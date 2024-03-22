@@ -19,6 +19,8 @@ services:
       - registry
     networks:
       - feed-parser-net
+    volumes:
+      - config:/app/config
     environment:
       CONFIG_PATH: './config/local.yaml'
     command: './feed-parser-service'
@@ -32,6 +34,8 @@ services:
       dockerfile: Dockerfile_kremlin
     depends_on:
       - registry
+    volumes:
+      - config:/app/config
     networks:
       - feed-parser-net
     environment:
@@ -40,6 +44,9 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+
+volumes:
+  config:
 
 networks:
   traefik-public:
