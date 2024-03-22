@@ -4,15 +4,14 @@ import (
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/indexer/kremlin"
 	"github.com/terratensor/feed-parser/internal/model/link"
-	"github.com/terratensor/feed-parser/internal/parser"
 	"github.com/terratensor/feed-parser/internal/workerpool"
 	"log"
 	"sync"
 )
 
 func main() {
-
 	cfg := config.MustLoad()
 
 	fp := gofeed.NewParser()
@@ -23,13 +22,13 @@ func main() {
 	for _, url := range cfg.URLS {
 
 		wg.Add(1)
-		p := parser.NewParser(link.Link{
+		kremlinIndexer := kremlin.NewIndexer(link.Link{
 			Url:        url.Url,
 			Lang:       url.Lang,
 			ResourceID: url.ResourceID,
 		}, *cfg.Delay, *cfg.RandomDelay)
 
-		go p.Run(ch, fp, wg)
+		go kremlinIndexer.Run(ch, fp, wg)
 	}
 
 	var allTask []*workerpool.Task
@@ -48,5 +47,5 @@ func main() {
 	pool.RunBackground()
 
 	wg.Wait()
-	log.Println("finished, all workers successfully stopped.")
+	log.Println("Indexer finished, all workers successfully stopped.")
 }

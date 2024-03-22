@@ -4,26 +4,24 @@ import (
 	"context"
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/htmlnode"
+	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
+	"github.com/terratensor/feed-parser/internal/model/link"
 	"log"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 )
 
-type Link struct {
-	Url        string
-	Lang       string
-	ResourceID int
-}
-
 type Parser struct {
-	Link        Link
+	Link        link.Link
 	Delay       time.Duration
 	RandomDelay time.Duration
 }
 
 // NewParser creates a new Parser with the given URL, delay, and randomDelay.
-func NewParser(url Link, delay time.Duration, randomDelay time.Duration) *Parser {
+func NewParser(url link.Link, delay time.Duration, randomDelay time.Duration) *Parser {
 	np := &Parser{
 		Link:        url,
 		Delay:       delay,
@@ -44,13 +42,8 @@ func (p *Parser) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) 
 		time.Sleep(p.Delay + randomDelay)
 
 		log.Printf("started parser for given url: %v", p.Link.Url)
-		gf, err := fp.ParseURL(p.Link.Url)
-		if err != nil {
-			log.Printf("ERROR: %v, %v", err, p.Link.Url)
-			continue
-		}
+		entries := p.getEntries(fp)
 		log.Printf("fetched the contents of a given url %v", p.Link.Url)
-		entries := makeEntries(gf.Items, p.Link)
 
 		select {
 		case <-context.Background().Done():
@@ -64,24 +57,35 @@ func (p *Parser) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) 
 	}
 }
 
-func makeEntries(items []*gofeed.Item, url Link) []feed.Entry {
-	var entries []feed.Entry
+// Получает записи ленты, если сайт kremlin,
+// то запускает kremlin парсер,
+// иначе запускает gofeed.Parser
+func (p *Parser) getEntries(fp *gofeed.Parser) []feed.Entry {
 
-	for _, item := range items {
-
-		e := &feed.Entry{
-			Language:   url.Lang,
-			Title:      item.Title,
-			Url:        item.Link,
-			Updated:    item.UpdatedParsed,
-			Published:  item.PublishedParsed,
-			Summary:    item.Description,
-			Content:    item.Content,
-			ResourceID: url.ResourceID,
+	if p.Link.ResourceID == 1 {
+		return p.parseKremlin(p.Link.Url)
+	} else {
+		gf, err := fp.ParseURL(p.Link.Url)
+		if err != nil {
+			log.Printf("ERROR: %v, %v", err, p.Link.Url)
+			return nil
 		}
-
-		entries = append(entries, *e)
+		return feed.MakeEntries(gf.Items, p.Link)
 	}
 
-	return entries
+}
+
+func (p *Parser) parseKremlin(url string) []feed.Entry {
+
+	node, err := htmlnode.GetTopicBody(url)
+	if os.IsTimeout(err) {
+		log.Printf("server timeout error %v", err)
+		return nil
+	}
+	if err != nil {
+		log.Printf("failed to decode request body %v", sl.Err(err))
+		return nil
+	}
+
+	return p.parseEntries(node)
 }

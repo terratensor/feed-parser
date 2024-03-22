@@ -1,0 +1,13 @@
+env: "local" # Окружение - local, dev или prod
+workers: 2
+delay: 2s
+random_delay: 2s
+manticore_index: feed
+entry_chan_buffer: 20
+parsers:
+  - url: "http://kremlin.ru/events/all/feed/"
+    lang: "ru"
+    resource_id: 1
+  - url: "http://en.kremlin.ru/events/all/feed"
+    lang: "en"
+    resource_id: 1
