@@ -1,0 +1,10 @@
+env: "local" # Окружение - local, dev или prod
+workers: 2
+delay: 2s
+random_delay: 2s
+manticore_index: feed
+entry_chan_buffer: 20
+parsers:
+  - url: "https://function.mil.ru/news_page/country.htm?objInBlock=25&f=1&fid=0&blk=10322350"
+    lang: "ru"
+    resource_id: 3
