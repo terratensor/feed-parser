@@ -45,6 +45,23 @@ services:
       restart_policy:
         condition: on-failure
 
+  mil-indexer:
+    image: ${REGISTRY:-localhost:5002}/feed-mil-indexer:main-1
+    build:
+      dockerfile: Dockerfile_mil
+    depends_on:
+      - registry
+    volumes:
+      - config:/app/config
+    networks:
+      - feed-parser-net
+    environment:
+      CONFIG_PATH: './config/mil/local.yaml'
+    command: './feed-mil-indexer'
+    deploy:
+      restart_policy:
+        condition: on-failure
+
 volumes:
   config:
 
