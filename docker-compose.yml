@@ -25,6 +25,7 @@ services:
       CONFIG_PATH: './config/local.yaml'
     command: './feed-parser-service'
     deploy:
+      replicas: 0
       restart_policy:
         condition: on-failure
 
@@ -42,6 +43,7 @@ services:
       CONFIG_PATH: './config/kremlin/local.yaml'
     command: './feed-kremlin-indexer'
     deploy:
+      replicas: 0
       restart_policy:
         condition: none
 
@@ -58,6 +60,24 @@ services:
     environment:
       CONFIG_PATH: './config/mil/local.yaml'
     command: './feed-mil-indexer'
+    deploy:
+      replicas: 0
+      restart_policy:
+        condition: none
+
+  mid-indexer:
+    image: ${REGISTRY:-localhost:5002}/feed-mid-indexer:main-1
+    build:
+      dockerfile: Dockerfile_mid
+    depends_on:
+      - registry
+    volumes:
+      - config:/app/config
+    networks:
+      - feed-parser-net
+    environment:
+      CONFIG_PATH: './config/mid/local.yaml'
+    command: './feed-mid-indexer'
     deploy:
       restart_policy:
         condition: none

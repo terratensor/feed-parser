@@ -62,6 +62,26 @@ services:
       restart_policy:
         condition: none
 
+  mid-indexer:
+    image: ${REGISTRY}/feed-mid-indexer:${IMAGE_TAG}
+    build:
+      dockerfile: Dockerfile_mid
+    depends_on:
+      - registry
+    volumes:
+      - config:/app/config
+    networks:
+      - feed-parser-net
+    environment:
+      CONFIG_PATH: './config/mid/prod.yaml'
+    command: './feed-mid-indexer'
+    deploy:
+      replicas: 0
+      placement:
+        constraints: [ node.role == manager ]
+      restart_policy:
+        condition: none
+
 volumes:
   config:
 
