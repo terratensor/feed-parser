@@ -69,6 +69,7 @@ func VisitMil(entry *feed.Entry) (*feed.Entry, error) {
 func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 
 	c := colly.NewCollector()
+	c.AllowURLRevisit = true
 
 	//c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
@@ -136,16 +137,27 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		log.Printf("Mid announcements: %v", entry.Title)
 	})
 
-	// ожидаем после запроса рандомно 1-10 секунд
-	n := 1 + rand.Intn(10)
-	d := time.Duration(n)
-	time.Sleep(d * time.Second)
+	count := 0
+	for {
+		// ожидаем после запроса рандомно 1-10 секунд
+		n := 1 + rand.Intn(10)
+		d := time.Duration(n)
+		time.Sleep(d * time.Second)
 
-	//c.Visit("https://function.mil.ru:443/news_page/country/more.htm?id=12502939@egNews")
-	err := c.Visit(entry.Url)
-	if err != nil {
-		log.Printf("Crawler Error: %v", err)
-		return nil, err
+		// Посещает ссылку, если ошибка, обычно connection reset by peer,
+		// то повторяет попытку и увеличивает счетчик попыток,
+		// пытается получить контент 10 раз
+		err := c.Visit(entry.Url)
+		if err != nil {
+			count++
+			log.Printf("Crawler Error: %v", err)
+			log.Printf("🔄 try again: %v url: %v", count, entry.Url)
+			if count <= 10 {
+				continue
+			}
+			return nil, err
+		}
+		break
 	}
 
 	return entry, nil
