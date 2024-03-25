@@ -85,6 +85,8 @@ func NewDBEntry(entry *feed.Entry) *DBEntry {
 func castTime(value *time.Time) int64 {
 	if value == nil {
 		return 0
+	} else if time.Time.IsZero(*value) {
+		return 0
 	} else {
 		return value.Unix()
 	}
