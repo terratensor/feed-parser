@@ -22,7 +22,7 @@ docker-build:
 dev-docker-build:
 	REGISTRY=localhost IMAGE_TAG=main-1 make docker-build
 
-docker-build: docker-build-service docker-build-kremlin-indexer docker-build-mil-indexer
+docker-build: docker-build-service docker-build-kremlin-indexer docker-build-mil-indexer docker-build-mid-indexer
 
 docker-build-service:
 	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
@@ -66,7 +66,21 @@ docker-build-mil-indexer:
 		--tag ${REGISTRY}/feed-mil-indexer:${IMAGE_TAG} \
 		--file ./Dockerfile_mil .
 
-push-build-cache: push-build-cache-service push-build-cache-kremlin-indexer push-build-cache-mil-indexer
+docker-build-mid-indexer:
+	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
+    		--target builder \
+    		--cache-from ${REGISTRY}/feed-mid-indexer:cache-builder \
+    		--tag ${REGISTRY}/feed-mid-indexer:cache-builder \
+    		--file ./Dockerfile_mid .
+
+	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--cache-from ${REGISTRY}/feed-mid-indexer:cache-builder \
+		--cache-from ${REGISTRY}/feed-mid-indexer:cache \
+		--tag ${REGISTRY}/feed-mid-indexer:cache \
+		--tag ${REGISTRY}/feed-mid-indexer:${IMAGE_TAG} \
+		--file ./Dockerfile_mid .
+
+push-build-cache: push-build-cache-service push-build-cache-kremlin-indexer push-build-cache-mil-indexer push-build-cache-mid-indexer
 
 push-build-cache-service:
 	docker push ${REGISTRY}/feed-parser-service:cache-builder
@@ -80,10 +94,15 @@ push-build-cache-mil-indexer:
 	docker push ${REGISTRY}/feed-mil-indexer:cache-builder
 	docker push ${REGISTRY}/feed-mil-indexer:cache
 
+push-build-cache-mid-indexer:
+	docker push ${REGISTRY}/feed-mid-indexer:cache-builder
+	docker push ${REGISTRY}/feed-mid-indexer:cache
+
 push:
 	docker push ${REGISTRY}/feed-parser-service:${IMAGE_TAG}
 	docker push ${REGISTRY}/feed-kremlin-indexer:${IMAGE_TAG}
 	docker push ${REGISTRY}/feed-mil-indexer:${IMAGE_TAG}
+	docker push ${REGISTRY}/feed-mid-indexer:${IMAGE_TAG}
 
 deploy:
 	ssh -o StrictHostKeyChecking=no deploy@${HOST} -p ${PORT} 'docker network create --driver=overlay traefik-public || true'
