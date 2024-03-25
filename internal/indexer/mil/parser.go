@@ -32,6 +32,7 @@ func (i *Indexer) parseNewsItems(rawURL string) ([]feed.Entry, error) {
 				date, err := time.Parse("02.01.2006 (15:04)", e.ChildText("span.date"))
 				if err != nil {
 					log.Printf("cannot parse date: %v", err)
+					date = time.Time{}
 				}
 
 				entry.Published = &date

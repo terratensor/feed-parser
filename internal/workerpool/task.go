@@ -72,10 +72,10 @@ func process(workerID int, task *Task) {
 		if err != nil {
 			logger.Error(
 				"failed insert entry",
-				slog.Int64("id", *id),
 				slog.String("url", e.Url),
 				sl.Err(err),
 			)
+			return
 		}
 		logger.Info(
 			"entry successful inserted",
@@ -98,10 +98,10 @@ func process(workerID int, task *Task) {
 			if err != nil {
 				logger.Error(
 					"failed update entry",
-					slog.Int64("id", *e.ID),
 					slog.String("url", e.Url),
 					sl.Err(err),
 				)
+				return
 			} else {
 				logger.Info(
 					"entry successful updated",

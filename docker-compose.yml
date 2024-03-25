@@ -43,7 +43,7 @@ services:
     command: './feed-kremlin-indexer'
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: none
 
   mil-indexer:
     image: ${REGISTRY:-localhost:5002}/feed-mil-indexer:main-1
@@ -60,7 +60,7 @@ services:
     command: './feed-mil-indexer'
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: none
 
 volumes:
   config:
