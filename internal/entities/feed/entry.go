@@ -44,6 +44,8 @@ func MakeEntries(items []*gofeed.Item, url link.Link) []Entry {
 
 	for _, item := range items {
 
+		content := populateContentField(item, url)
+
 		e := &Entry{
 			Language:   url.Lang,
 			Title:      item.Title,
@@ -51,7 +53,7 @@ func MakeEntries(items []*gofeed.Item, url link.Link) []Entry {
 			Updated:    item.UpdatedParsed,
 			Published:  item.PublishedParsed,
 			Summary:    item.Description,
-			Content:    item.Content,
+			Content:    content,
 			ResourceID: url.ResourceID,
 		}
 
@@ -59,4 +61,29 @@ func MakeEntries(items []*gofeed.Item, url link.Link) []Entry {
 	}
 
 	return entries
+}
+
+func populateContentField(item *gofeed.Item, url link.Link) string {
+
+	var content string
+	content = item.Content
+
+	//if url.ResourceID == 4 {
+	//	feedExt := item.Extensions["yandex"]["full-text"][0]
+	//	content = striphtml.StripHtmlTags(feedExt.Value)
+	//
+	//	var sb strings.Builder
+	//	sentences := strings.SplitAfter(content, "\n")
+	//	for _, con := range sentences {
+	//		if len(con) > 0 {
+	//			sb.WriteString("<p>")
+	//			sb.WriteString(con)
+	//			sb.WriteString("</p>")
+	//		}
+	//	}
+	//
+	//	content = sb.String()
+	//}
+
+	return content
 }
