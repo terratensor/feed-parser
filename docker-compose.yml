@@ -42,7 +42,6 @@ services:
       CONFIG_PATH: './config/kremlin/local.yaml'
     command: './feed-kremlin-indexer'
     deploy:
-      replicas: 0
       restart_policy:
         condition: none
 
@@ -60,7 +59,6 @@ services:
       CONFIG_PATH: './config/mil/local.yaml'
     command: './feed-mil-indexer'
     deploy:
-      replicas: 0
       restart_policy:
         condition: none
 
