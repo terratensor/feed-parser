@@ -1,4 +1,4 @@
-env: "local" # Окружение - local, dev или prod
+env: "prod" # Окружение - local, dev или prod
 workers: 2
 delay: 2s
 random_delay: 2s

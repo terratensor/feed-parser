@@ -24,6 +24,7 @@ func main() {
 			Url:        url.Url,
 			Lang:       url.Lang,
 			ResourceID: url.ResourceID,
+			UserAgent:  url.UserAgent,
 		}, *cfg.Delay, *cfg.RandomDelay)
 
 		go midIndexer.Run(ch, wg)

@@ -1,10 +1,11 @@
-env: "local" # Окружение - local, dev или prod
-workers: 5
-delay: 2s
-random_delay: 2s
+env: "prod" # Окружение - local, dev или prod
+workers: 1
+delay: 20s
+random_delay: 10s
 manticore_index: feed
 entry_chan_buffer: 20
 parsers:
   - url: "https://mid.ru/ru/foreign_policy/news/?PAGEN_1=1"
     lang: "ru"
     resource_id: 2
+    user_agent: "PostmanRuntime/7.37.0"

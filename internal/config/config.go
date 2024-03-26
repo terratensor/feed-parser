@@ -21,6 +21,7 @@ type Link struct {
 	Url        string `yaml:"url"`
 	Lang       string `yaml:"lang"`
 	ResourceID int    `yaml:"resource_id"`
+	UserAgent  string `yaml:"user_agent"`
 }
 
 func MustLoad() *Config {

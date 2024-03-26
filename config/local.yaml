@@ -1,5 +1,5 @@
 env: "local" # Окружение - local, dev или prod
-workers: 5
+workers: 2
 delay: 60s
 random_delay: 150s
 manticore_index: feed
@@ -11,24 +11,24 @@ parsers:
   - url: "http://en.kremlin.ru/events/all/feed"
     lang: "en"
     resource_id: 1
-  - url: "https://mid.ru/ru/rss.php"
-    lang: "ru"
-    resource_id: 2
-  - url: "https://mid.ru/en/rss.php"
-    lang: "en"
-    resource_id: 2
-  - url: "https://mid.ru/de/rss.php"
-    lang: "de"
-    resource_id: 2
-  - url: "https://mid.ru/fr/rss.php"
-    lang: "fr"
-    resource_id: 2
-  - url: "https://mid.ru/es/rss.php"
-    lang: "es"
-    resource_id: 2
-  - url: "https://mid.ru/pt/rss.php"
-    lang: "pt"
-    resource_id: 2
+#  - url: "https://mid.ru/ru/rss.php"
+#    lang: "ru"
+#    resource_id: 2
+#  - url: "https://mid.ru/en/rss.php"
+#    lang: "en"
+#    resource_id: 2
+#  - url: "https://mid.ru/de/rss.php"
+#    lang: "de"
+#    resource_id: 2
+#  - url: "https://mid.ru/fr/rss.php"
+#    lang: "fr"
+#    resource_id: 2
+#  - url: "https://mid.ru/es/rss.php"
+#    lang: "es"
+#    resource_id: 2
+#  - url: "https://mid.ru/pt/rss.php"
+#    lang: "pt"
+#    resource_id: 2
   - url: "https://function.mil.ru/rss_feeds/reference_to_general.htm?contenttype=xml"
     lang: "ru"
     resource_id: 3
