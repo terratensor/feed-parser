@@ -1,7 +1,7 @@
 env: "local" # Окружение - local, dev или prod
-workers: 5
-delay: 2s
-random_delay: 2s
+workers: 1
+delay: 20s
+random_delay: 10s
 manticore_index: feed
 entry_chan_buffer: 20
 parsers:

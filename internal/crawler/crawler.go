@@ -140,9 +140,9 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 
 	count := 0
 	for {
-		// ожидаем после запроса рандомно 1-10 секунд
+		// ожидаем после запроса рандомно 10 - 40 секунд
 		// с увеличением паузы после неудачной попытки
-		n := (1+count)*2 + rand.Intn(10)
+		n := (1+count)*10 + rand.Intn(40)
 		d := time.Duration(n)
 		time.Sleep(d * time.Second)
 

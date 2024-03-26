@@ -150,8 +150,8 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 		log.Printf("WARRNING! Title was empty, UPDATING entry %v", dbe.Url)
 		return true
 	}
-	// Если контент в базе пустой, значит необходимо произвести обновление записи
-	if len(strings.TrimSpace(dbe.Content)) == 0 {
+	// Если контент в базе пустой, и это не сайт kremlin.ru, производим обновление записи
+	if len(strings.TrimSpace(dbe.Content)) == 0 && dbe.ResourceID != 1 {
 		log.Printf("WARRNING! Content was empty, UPDATING entry %v", dbe.Url)
 		return true
 	}
@@ -165,10 +165,19 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 	dbeTime := dbe.Updated.In(loc)
 	eTime := e.Updated.In(loc)
 
-	if dbeTime != eTime {
+	if dbeTime != eTime && dbe.ResourceID != 2 {
 		log.Printf("Url %v `updated` fields do not match dbe updated %v", dbe.Url, dbeTime)
 		log.Printf("Url %v `updated` fields do not match prs updated %v", e.Url, eTime)
 		return true
+	}
+
+	// Для ленты сайта mid
+	if dbeTime.Add(1*time.Hour).Sub(eTime) > 0 && dbe.ResourceID == 2 {
+		log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) > 0 && dbe.ResourceID == 2, condition id true")
+		log.Printf("Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
+		//return true
+		// Пока только фиксируем и не обновляем, возвращаем false
+		return false
 	}
 
 	return false
