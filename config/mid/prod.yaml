@@ -8,3 +8,4 @@ parsers:
   - url: "https://mid.ru/ru/foreign_policy/news/?PAGEN_1=1"
     lang: "ru"
     resource_id: 2
+    user_agent: "PostmanRuntime/7.37.0"

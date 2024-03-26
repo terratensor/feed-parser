@@ -71,6 +71,7 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 	c := colly.NewCollector()
 	c.AllowURLRevisit = true
 
+	c.UserAgent = "PostmanRuntime/7.37.0"
 	//c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
 	c.OnRequest(func(r *colly.Request) {
@@ -140,7 +141,8 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 	count := 0
 	for {
 		// ожидаем после запроса рандомно 1-10 секунд
-		n := 1 + rand.Intn(10)
+		// с увеличением паузы после неудачной попытки
+		n := (1+count)*2 + rand.Intn(10)
 		d := time.Duration(n)
 		time.Sleep(d * time.Second)
 

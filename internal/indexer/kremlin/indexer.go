@@ -44,7 +44,7 @@ func (i *Indexer) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup)
 		time.Sleep(i.Delay + randomDelay)
 
 		url := i.getUrl()
-		parsedLink := link.NewLink(url, i.Link.Lang, i.Link.ResourceID)
+		parsedLink := link.NewLink(url, i.Link.Lang, i.Link.ResourceID, i.Link.UserAgent)
 		// Если url пустой, следующей достигнут конец RSS ленты,
 		// следующей станицы не существует, заканчиваем парсинг
 		if parsedLink.Url == "" {
