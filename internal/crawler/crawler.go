@@ -69,7 +69,7 @@ func VisitMil(entry *feed.Entry) (*feed.Entry, error) {
 func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 
 	c := colly.NewCollector()
-	c.AllowURLRevisit = true
+	c.AllowURLRevisit = false
 
 	c.UserAgent = "PostmanRuntime/7.37.0"
 	//c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
@@ -140,9 +140,14 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 
 	count := 0
 	for {
-		// ожидаем после запроса рандомно 10 - 40 секунд
+		// ожидаем после запроса рандомно 10 - 30 секунд
 		// с увеличением паузы после неудачной попытки
-		n := (1+count)*10 + rand.Intn(40)
+		var n int
+		if c.AllowURLRevisit {
+			n = (1+count)*10 + rand.Intn(30)
+		} else {
+			n = (1 + count) * 10
+		}
 		d := time.Duration(n)
 		time.Sleep(d * time.Second)
 
@@ -154,7 +159,7 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 			count++
 			log.Printf("Crawler Error: %v", err)
 			log.Printf("🔄 try again: %v url: %v", count, entry.Url)
-			if count <= 10 {
+			if c.AllowURLRevisit && count <= 10 {
 				continue
 			}
 			return nil, err

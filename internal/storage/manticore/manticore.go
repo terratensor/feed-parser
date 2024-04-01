@@ -6,7 +6,7 @@ import (
 	"fmt"
 	openapiclient "github.com/manticoresoftware/manticoresearch-go"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
-
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -28,8 +28,8 @@ type Response struct {
 				Title      string `json:"title"`
 				Summary    string `json:"summary"`
 				Content    string `json:"content"`
-				Published  int    `json:"published"`
-				Updated    int    `json:"updated"`
+				Published  int64  `json:"published"`
+				Updated    int64  `json:"updated"`
 				Language   string `json:"language"`
 				Url        string `json:"url"`
 				Author     string `json:"author"`
@@ -97,7 +97,8 @@ func New(tbl string) (*Client, error) {
 	configuration := openapiclient.NewConfiguration()
 	configuration.Servers = openapiclient.ServerConfigurations{
 		{
-			URL:         "http://manticore_feed:9308",
+			URL: "http://manticore_feed:9308",
+			//URL:         "http://localhost:9308",
 			Description: "Default Manticore Search HTTP",
 		},
 	}
@@ -341,4 +342,80 @@ func getEntryID(resp *openapiclient.SearchResponse) (*int64, error) {
 	}
 
 	return &id, nil
+}
+
+func (c *Client) FindAll(ctx context.Context, limit int) {
+	body1 := "show index feed status"
+	resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body1).RawResponse(true).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `UtilsAPI.Sql``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
+	}
+	fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
+	return
+
+	count := 0
+	for {
+		offset := count * limit
+		maxMatches := offset + limit
+		body := fmt.Sprintf("select * from feed limit %v offset %v option max_matches=%v", limit, offset, maxMatches)
+
+		resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body).RawResponse(false).Execute()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error when calling `UtilsAPI.Sql``: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
+		}
+		// response from `Sql`: []map[string]interface{}
+		//fmt.Fprintf(os.Stdout, "Response from `UtilsAPI.Sql`: %v\n", resp)
+
+		// Assuming the data is stored in a variable called 'jsonData'
+		//var data map[string]interface{}
+		//fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r.Body)
+		v := &Response{}
+		data, err := io.ReadAll(r.Body)
+		if err := json.Unmarshal(data, v); err != nil {
+			log.Fatalf("Parse response failed, reason: %v \n", err)
+		}
+
+		//log.Printf("Response from `UtilsAPI.Sql`: %v\n", v.Hits.Hits)
+
+		for _, h := range v.Hits.Hits {
+			log.Printf("h.id: %v h.Title %v\n", h.Source.Url, h.Source.Title)
+		}
+
+		//var ids []string
+		//for _, hit := range hits {
+		//	//log.Printf("hit: %v\n", hit)
+		//	id := hit.(map[string]interface{})["_id"].(string)
+		//	source := hit.(map[string]interface{})["_source"].(map[string]interface{})
+		//	log.Printf("source: %v\n", source)
+		//	dbe := &DBEntry{
+		//		Language:   source["language"].(string),
+		//		Title:      source["title"].(string),
+		//		Url:        source["url"].(string),
+		//		Updated:    source["updated"].(int64),
+		//		Published:  source["published"].(int64),
+		//		Summary:    source["summary"].(string),
+		//		Content:    source["content"].(string),
+		//		Author:     source["author"].(string),
+		//		Number:     source["number"].(string),
+		//		ResourceID: source["resource_id"].(int),
+		//		Created:    source["created"].(int64),
+		//	}
+		//	log.Printf("dbe: %v\n", dbe)
+		//	ids = append(ids, id)
+		//}
+		//
+		//log.Printf("ids: %v\n", ids)
+
+		count++
+		log.Printf("🚩 count: %v\n", count)
+		if count > 10 {
+			break
+		}
+	}
+
 }

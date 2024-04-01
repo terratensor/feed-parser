@@ -160,25 +160,38 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 	if dbe == nil || e.Updated == nil {
 		return false
 	}
-	// Приводим время в обоих объектах к GMT+4, как на сайте Кремля
-	loc, _ := time.LoadLocation("Etc/GMT-4")
-	dbeTime := dbe.Updated.In(loc)
-	eTime := e.Updated.In(loc)
+
+	// Приводим время в обоих объектах к нужному часовому поясу в зависимости от ресурса.
+	// GMT+4 на сайте Кремля, GMT+3 на других ресурсах.
+	var loc *time.Location
+	var dbeTime, eTime time.Time
+	if dbe.ResourceID == 1 {
+		loc, _ = time.LoadLocation("Etc/GMT-4")
+		dbeTime = dbe.Updated.In(loc)
+		eTime = e.Updated.In(loc)
+	} else {
+		loc, _ = time.LoadLocation("Etc/GMT-3")
+		dbeTime = dbe.Updated.In(loc)
+		eTime = e.Updated.In(loc)
+	}
 
 	if dbeTime != eTime && dbe.ResourceID != 2 {
-		log.Printf("Url %v `updated` fields do not match dbe updated %v", dbe.Url, dbeTime)
-		log.Printf("Url %v `updated` fields do not match prs updated %v", e.Url, eTime)
+		log.Printf("Url %v `updated` fields do not match dbe updated %v, e: %v", dbe.Url, dbeTime, eTime)
 		return true
 	}
-
+	//TODO обновление закомментировано, в следующих версиях надо удалить
+	//intervalT := dbeTime.Add(1 * time.Hour)
+	//log.Printf("dbeTime.Add(1*time.Hour), %v\n", intervalT)
+	//log.Printf("current eTime, %v\n", eTime)
+	//log.Printf("Sub(eTime), %v\n", intervalT.Sub(eTime))
 	// Для ленты сайта mid
-	if dbeTime.Add(1*time.Hour).Sub(eTime) > 0 && dbe.ResourceID == 2 {
-		log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) > 0 && dbe.ResourceID == 2, condition id true")
-		log.Printf("Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
-		//return true
-		// Пока только фиксируем и не обновляем, возвращаем false
-		return false
-	}
+	//if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
+	//	log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2, condition id true")
+	//	log.Printf("Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
+	//	//return true
+	//	// Пока только фиксируем и не обновляем, возвращаем false
+	//	return false
+	//}
 
 	return false
 }
