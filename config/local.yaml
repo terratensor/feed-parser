@@ -11,9 +11,9 @@ parsers:
   - url: "http://en.kremlin.ru/events/all/feed"
     lang: "en"
     resource_id: 1
-#  - url: "https://mid.ru/ru/rss.php"
-#    lang: "ru"
-#    resource_id: 2
+  - url: "https://mid.ru/ru/rss.php"
+    lang: "ru"
+    resource_id: 2
 #  - url: "https://mid.ru/en/rss.php"
 #    lang: "en"
 #    resource_id: 2

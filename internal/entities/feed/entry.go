@@ -27,6 +27,7 @@ type StorageInterface interface {
 	Insert(ctx context.Context, entry *Entry) (*int64, error)
 	Update(ctx context.Context, entry *Entry) error
 	Bulk(ctx context.Context, entries *[]Entry) error
+	FindAll(ctx context.Context, limit int)
 }
 
 type Entries struct {
