@@ -62,17 +62,19 @@ func (p *Parser) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) 
 // иначе запускает gofeed.Parser
 func (p *Parser) getEntries(fp *gofeed.Parser) []feed.Entry {
 
+	var entries []feed.Entry
 	if p.Link.ResourceID == 1 {
-		return p.parseKremlin(p.Link.Url)
+		entries = append(entries, p.parseKremlin(p.Link.Url)...)
 	} else {
 		gf, err := fp.ParseURL(p.Link.Url)
 		if err != nil {
 			log.Printf("ERROR: %v, %v", err, p.Link.Url)
 			return nil
 		}
-		return feed.MakeEntries(gf.Items, p.Link)
+		entries = append(entries, feed.MakeEntries(gf.Items, p.Link)...)
 	}
 
+	return entries
 }
 
 func (p *Parser) parseKremlin(url string) []feed.Entry {

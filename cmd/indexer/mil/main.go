@@ -1,10 +1,12 @@
 package main
 
 import (
+	"github.com/terratensor/feed-parser/internal/app"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/indexer/mil"
 	"github.com/terratensor/feed-parser/internal/model/link"
+	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/workerpool"
 	"log"
 	"sync"
@@ -32,12 +34,14 @@ func main() {
 	var allTask []*workerpool.Task
 
 	pool := workerpool.NewPool(allTask, cfg.Workers)
+	sp := splitter.NewSplitter(cfg.Splitter.OptChunkSize, cfg.Splitter.MaxChunkSize)
+	entriesStore := app.NewEntriesStorage(cfg.ManticoreIndex)
 
 	go func() {
 		for {
 			task := workerpool.NewTask(func(data interface{}) error {
 				return nil
-			}, <-ch)
+			}, <-ch, sp, entriesStore)
 			pool.AddTask(task)
 		}
 	}()

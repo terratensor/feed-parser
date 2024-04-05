@@ -14,6 +14,7 @@ type Config struct {
 	RandomDelay     *time.Duration `yaml:"random_delay"  env-default:"150s"`
 	ManticoreIndex  string         `yaml:"manticore_index"`
 	EntryChanBuffer int            `yaml:"entry_chan_buffer" env-default:"20"`
+	Splitter        Splitter       `yaml:"splitter"`
 	URLS            []Link         `yaml:"parsers"`
 }
 
@@ -22,6 +23,11 @@ type Link struct {
 	Lang       string `yaml:"lang"`
 	ResourceID int    `yaml:"resource_id"`
 	UserAgent  string `yaml:"user_agent"`
+}
+
+type Splitter struct {
+	OptChunkSize int `yaml:"opt_chunk_size" env-default:"1800"`
+	MaxChunkSize int `yaml:"max_chunk_size" env-default:"3600"`
 }
 
 func MustLoad() *Config {

@@ -35,9 +35,19 @@ type Response struct {
 				Author     string `json:"author"`
 				Number     string `json:"number"`
 				ResourceID int    `json:"resource_id"`
+				Created    int64  `json:"created"`
+				Chunk      int    `json:"chunk"`
 			} `json:"_source"`
 		} `json:"hits"`
 	} `json:"hits"`
+}
+
+type IndexStatus struct {
+	Columns []map[string]map[string]string `json:"columns"`
+	Data    []map[string]string            `json:"data"`
+	Total   int                            `json:"total"`
+	Error   string                         `json:"error"`
+	Warning string                         `json:"warning"`
 }
 
 type DBEntry struct {
@@ -52,6 +62,7 @@ type DBEntry struct {
 	Number     string `json:"number"`
 	ResourceID int    `json:"resource_id"`
 	Created    int64  `json:"created"`
+	Chunk      int    `json:"chunk"`
 }
 
 type Client struct {
@@ -77,6 +88,7 @@ func NewDBEntry(entry *feed.Entry) *DBEntry {
 		Number:     entry.Number,
 		ResourceID: entry.ResourceID,
 		Created:    castTime(&created),
+		Chunk:      entry.Chunk,
 	}
 
 	return dbe
@@ -97,8 +109,8 @@ func New(tbl string) (*Client, error) {
 	configuration := openapiclient.NewConfiguration()
 	configuration.Servers = openapiclient.ServerConfigurations{
 		{
-			URL: "http://manticore_feed:9308",
-			//URL:         "http://localhost:9308",
+			//URL: "http://manticore_feed:9308",
+			URL:         "http://localhost:9308",
 			Description: "Default Manticore Search HTTP",
 		},
 	}
@@ -136,7 +148,7 @@ func New(tbl string) (*Client, error) {
 
 func createTable(apiClient *openapiclient.APIClient, tbl string) error {
 
-	query := fmt.Sprintf(`create table %v(language string, url string, title text, summary text, content text, published timestamp, updated timestamp, author string, number string, resource_id int, created timestamp) engine='columnar' min_infix_len='3' index_exact_words='1' morphology='stem_en, stem_ru, libstemmer_de, libstemmer_fr, libstemmer_es, libstemmer_pt' index_sp='1'`, tbl)
+	query := fmt.Sprintf(`create table %v(language string, url string, title text, summary text, content text, published timestamp, updated timestamp, author string, number string, resource_id int, created timestamp, updated_at timestamp, chunk int) min_infix_len='3' index_exact_words='1' morphology='stem_en, stem_ru, libstemmer_de, libstemmer_fr, libstemmer_es, libstemmer_pt' index_sp='1'`, tbl)
 
 	sqlRequest := apiClient.UtilsAPI.Sql(context.Background()).Body(query)
 	_, _, err := apiClient.UtilsAPI.SqlExecute(sqlRequest)
@@ -192,6 +204,7 @@ func (c *Client) Update(ctx context.Context, entry *feed.Entry) error {
 		Number:     entry.Number,
 		ResourceID: entry.ResourceID,
 		Created:    castTime(entry.Created),
+		Chunk:      entry.Chunk,
 	}
 
 	//marshal into JSON buffer
@@ -293,6 +306,7 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 		Number:     dbe.Number,
 		ResourceID: dbe.ResourceID,
 		Created:    &created,
+		Chunk:      dbe.Chunk,
 	}
 
 	return ent, nil
@@ -336,7 +350,7 @@ func getEntryID(resp *openapiclient.SearchResponse) (*int64, error) {
 
 	_id = hit["_id"]
 	id, err := strconv.ParseInt(_id.(string), 10, 64)
-	//log.Printf("id %d\n", id)
+
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse ID to int64: %v\n", resp)
 	}
@@ -344,78 +358,143 @@ func getEntryID(resp *openapiclient.SearchResponse) (*int64, error) {
 	return &id, nil
 }
 
-func (c *Client) FindAll(ctx context.Context, limit int) {
-	body1 := "show index feed status"
-	resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body1).RawResponse(true).Execute()
+func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error) {
+
+	chout := make(chan feed.Entry, 100)
+
+	indexedDocuments := getIndexStatus(c)
+	log.Printf("indexedDocuments: %d\n", indexedDocuments)
+
+	var lastCount int
+	if indexedDocuments%limit > 0 {
+		lastCount = indexedDocuments/limit + 1
+	} else {
+		lastCount = indexedDocuments / limit
+	}
+
+	//lastCount = 1
+	go func() {
+		defer close(chout)
+
+		count := 0
+
+		for {
+			offset := count * limit
+			//maxMatches := offset + limit
+			body := fmt.Sprintf("select * from feed limit %v offset %v option max_matches=%v", limit, offset, indexedDocuments)
+			//body := fmt.Sprintf("select * from feed order by id asc limit %v offset %v option max_matches=%v", limit, offset, indexedDocuments)
+
+			resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body).RawResponse(false).Execute()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error when calling `UtilsAPI.Sql``: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
+				return
+			}
+
+			v := &Response{}
+			data, err := io.ReadAll(r.Body)
+			if err := json.Unmarshal(data, v); err != nil {
+				log.Fatalf("Parse response failed, reason: %v \n", err)
+				return
+			}
+
+			for _, hit := range v.Hits.Hits {
+
+				source := hit.Source
+
+				dbe := &DBEntry{
+					Language:   source.Language,
+					Title:      source.Title,
+					Url:        source.Url,
+					Updated:    source.Updated,
+					Published:  source.Published,
+					Summary:    source.Summary,
+					Content:    source.Content,
+					Author:     source.Author,
+					Number:     source.Number,
+					ResourceID: source.ResourceID,
+					Created:    source.Created,
+					Chunk:      source.Chunk,
+				}
+
+				id, err := strconv.ParseInt(hit.Id, 10, 64)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to parse ID to int64: %v\n", hit)
+					return
+				}
+
+				updated := time.Unix(dbe.Updated, 0)
+				published := time.Unix(dbe.Published, 0)
+				created := time.Unix(dbe.Created, 0)
+
+				chout <- feed.Entry{
+					ID:         &id,
+					Language:   dbe.Language,
+					Title:      dbe.Title,
+					Url:        dbe.Url,
+					Updated:    &updated,
+					Published:  &published,
+					Summary:    dbe.Summary,
+					Content:    dbe.Content,
+					Author:     dbe.Author,
+					Number:     dbe.Number,
+					ResourceID: dbe.ResourceID,
+					Created:    &created,
+					Chunk:      dbe.Chunk,
+				}
+			}
+
+			count++
+			log.Printf("🚩 count: %v\n", count)
+			if count > lastCount {
+				break
+			}
+		}
+	}()
+
+	return chout, nil
+}
+
+func getIndexStatus(c *Client) int {
+	body := "show index feed status"
+	resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body).RawResponse(true).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling `UtilsAPI.Sql``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
-	}
-	fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
-	return
-
-	count := 0
-	for {
-		offset := count * limit
-		maxMatches := offset + limit
-		body := fmt.Sprintf("select * from feed limit %v offset %v option max_matches=%v", limit, offset, maxMatches)
-
-		resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body).RawResponse(false).Execute()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error when calling `UtilsAPI.Sql``: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
-		}
-		// response from `Sql`: []map[string]interface{}
-		//fmt.Fprintf(os.Stdout, "Response from `UtilsAPI.Sql`: %v\n", resp)
-
-		// Assuming the data is stored in a variable called 'jsonData'
-		//var data map[string]interface{}
-		//fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r.Body)
-		v := &Response{}
-		data, err := io.ReadAll(r.Body)
-		if err := json.Unmarshal(data, v); err != nil {
-			log.Fatalf("Parse response failed, reason: %v \n", err)
-		}
-
-		//log.Printf("Response from `UtilsAPI.Sql`: %v\n", v.Hits.Hits)
-
-		for _, h := range v.Hits.Hits {
-			log.Printf("h.id: %v h.Title %v\n", h.Source.Url, h.Source.Title)
-		}
-
-		//var ids []string
-		//for _, hit := range hits {
-		//	//log.Printf("hit: %v\n", hit)
-		//	id := hit.(map[string]interface{})["_id"].(string)
-		//	source := hit.(map[string]interface{})["_source"].(map[string]interface{})
-		//	log.Printf("source: %v\n", source)
-		//	dbe := &DBEntry{
-		//		Language:   source["language"].(string),
-		//		Title:      source["title"].(string),
-		//		Url:        source["url"].(string),
-		//		Updated:    source["updated"].(int64),
-		//		Published:  source["published"].(int64),
-		//		Summary:    source["summary"].(string),
-		//		Content:    source["content"].(string),
-		//		Author:     source["author"].(string),
-		//		Number:     source["number"].(string),
-		//		ResourceID: source["resource_id"].(int),
-		//		Created:    source["created"].(int64),
-		//	}
-		//	log.Printf("dbe: %v\n", dbe)
-		//	ids = append(ids, id)
-		//}
-		//
-		//log.Printf("ids: %v\n", ids)
-
-		count++
-		log.Printf("🚩 count: %v\n", count)
-		if count > 10 {
-			break
-		}
 	}
 
+	var sqlResp []map[string]interface{}
+	sqlResp = resp
+	data := sqlResp[0]["data"].([]interface{})
+
+	for _, rows := range data {
+		row := rows.(map[string]interface{})
+		if row["Variable_name"] == "indexed_documents" {
+			value := row["Value"].(string)
+
+			intValue, err := strconv.Atoi(value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error when parse int: %v\n", err)
+			}
+			return intValue
+		}
+	}
+	return 0
+}
+
+func (c *Client) Delete(ctx context.Context, id *int64) error {
+
+	deleteDocumentRequest := *openapiclient.NewDeleteDocumentRequest("feed") // DeleteDocumentRequest |
+
+	deleteDocumentRequest.Id = id
+
+	resp, r, err := c.apiClient.IndexAPI.Delete(context.Background()).DeleteDocumentRequest(deleteDocumentRequest).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `IndexAPI.Delete` ID: %v, Error: %v\n", *id, err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+		return err
+	}
+	// response from `Delete`: DeleteResponse
+	fmt.Fprintf(os.Stdout, "Response from `IndexAPI.Delete`: %v\n", resp)
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/terratensor/feed-parser/internal/crawler"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
+	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/storage/manticore"
 	"log"
 	"log/slog"
@@ -23,8 +24,10 @@ Task содержит все необходимое для обработки з
 type Task struct {
 	Err error
 	//Entries *feed.Entries
-	Data *feed.Entry
-	f    func(interface{}) error
+	Data           *feed.Entry
+	f              func(interface{}) error
+	Splitter       splitter.Splitter
+	EntriesStorage *feed.Entries
 }
 
 func NewTaskStorage() *feed.Entries {
@@ -41,8 +44,13 @@ func NewTaskStorage() *feed.Entries {
 	return feed.NewFeedStorage(storage)
 }
 
-func NewTask(f func(interface{}) error, data feed.Entry) *Task {
-	return &Task{f: f, Data: &data}
+func NewTask(f func(interface{}) error, data feed.Entry, splitter *splitter.Splitter, storage *feed.Entries) *Task {
+	return &Task{
+		f:              f,
+		Data:           &data,
+		Splitter:       *splitter,
+		EntriesStorage: storage,
+	}
 }
 
 func process(workerID int, task *Task) {
@@ -52,7 +60,7 @@ func process(workerID int, task *Task) {
 		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 	)
 
-	store := NewTaskStorage()
+	store := task.EntriesStorage
 
 	dbe, err := store.Storage.FindByUrl(context.Background(), task.Data.Url)
 	e := task.Data
@@ -68,20 +76,25 @@ func process(workerID int, task *Task) {
 			return
 		}
 
-		id, err := store.Storage.Insert(context.Background(), e)
-		if err != nil {
-			logger.Error(
-				"failed insert entry",
+		// Здесь надо осуществить разбивку длинного контента на части newEntries := sp.SplitEntry(ctx, e)
+		splitEntries := task.Splitter.SplitEntry(context.Background(), *e)
+
+		for _, splitEntry := range splitEntries {
+			id, err := store.Storage.Insert(context.Background(), &splitEntry)
+			if err != nil {
+				logger.Error(
+					"failed insert entry",
+					slog.String("url", e.Url),
+					sl.Err(err),
+				)
+				return
+			}
+			logger.Info(
+				"entry successful inserted",
+				slog.Int64("id", *id),
 				slog.String("url", e.Url),
-				sl.Err(err),
 			)
-			return
 		}
-		logger.Info(
-			"entry successful inserted",
-			slog.Int64("id", *id),
-			slog.String("url", e.Url),
-		)
 	} else {
 		if needUpdate(dbe, *e) {
 			e.ID = dbe.ID

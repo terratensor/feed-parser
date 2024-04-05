@@ -4,6 +4,9 @@ delay: 20s
 random_delay: 10s
 manticore_index: feed
 entry_chan_buffer: 20
+splitter:
+  opt_chunk_size: 1800 # оптимальный размер фрагмента контента для поиска, на эти фрагменты будет разбит контент
+  max_chunk_size: 3600 # максимальный размер фрагмента контента для поиска
 parsers:
   - url: "https://mid.ru/ru/foreign_policy/news/?PAGEN_1=1"
     lang: "ru"

@@ -4,6 +4,9 @@ delay: 2s
 random_delay: 2s
 manticore_index: feed
 entry_chan_buffer: 20
+splitter:
+  opt_chunk_size: 1800 # оптимальный размер фрагмента контента для поиска, на эти фрагменты будет разбит контент
+  max_chunk_size: 3600 # максимальный размер фрагмента контента для поиска
 parsers:
   - url: "https://function.mil.ru/news_page/country.htm?objInBlock=25&f=1&fid=0&blk=10322350"
     lang: "ru"

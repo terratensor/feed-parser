@@ -60,4 +60,9 @@ urls := []Link{
 - [goquery - a little like that j-thing, only in Go](https://github.com/PuerkitoBio/goquery)
 
 Полный список зависимостей в файле [go.mod](https://github.com/terratensor/feed-parser/blob/a279808983af6ade816521b8d4c2751ac2de45d5/go.mod)
-    
+
+
+#### Как сделать backup
+```
+docker exec -it container_id mysqldump -h0 -P9306 feed > feed_backup.sql
+```
