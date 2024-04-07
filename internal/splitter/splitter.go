@@ -24,10 +24,10 @@ func (sp *Splitter) SplitEntry(ctx context.Context, entry feed.Entry) []feed.Ent
 
 	var entries []feed.Entry
 
-	var contentBuilder strings.Builder
-	contentBuilder.WriteString(entry.Content)
+	//var contentBuilder strings.Builder
+	//contentBuilder.WriteString(entry.Content)
 
-	contentChunks := sp.splitContent(&contentBuilder)
+	contentChunks := sp.splitContent(entry.Content)
 
 	for chunk, content := range contentChunks {
 
@@ -51,21 +51,57 @@ func (sp *Splitter) SplitEntry(ctx context.Context, entry feed.Entry) []feed.Ent
 	return entries
 }
 
-func (sp *Splitter) splitContent(contentBuilder *strings.Builder) []string {
+func (sp *Splitter) splitContent(entryContent string) []string {
 
-	entryLen := utf8.RuneCountInString(contentBuilder.String())
+	var contentBuilder strings.Builder
+	contentBuilder.WriteString(entryContent)
+
 	var builder strings.Builder
-
 	var pars []string
 
-	if entryLen > sp.maxParSize {
-		log.Printf("🚩 Обрабатываем большой контент, делим на фрагменты: %v", utf8.RuneCountInString(contentBuilder.String()))
+	entryContentLen := utf8.RuneCountInString(contentBuilder.String())
+	if entryContentLen > sp.maxParSize {
 
+		// Заменяем строковый разделитель \n на обычный
+		content := strings.Replace(contentBuilder.String(), `\n`, "\n", -1)
+		contentBuilder.Reset()
+		contentBuilder.WriteString(content)
+
+		// Задаем разделители
+		separators := []string{"\n", "<br>"}
+		// Обрабатываем стандартный сценарий, делим по параграфам
 		paragraphs := strings.SplitAfter(contentBuilder.String(), "</p>")
 
-		for _, paragraph := range paragraphs {
+		var completed bool
 
-			builder.WriteString(paragraph)
+		for _, paragraph := range paragraphs {
+			completed = false
+			// Если полученный параграф больше оптимального размера, то разбиваем его на части
+			// по ранее заданному списку разделителей
+			if utf8.RuneCountInString(paragraph) > sp.maxParSize {
+				for _, separator := range separators {
+
+					newParagraphs := strings.SplitAfter(paragraph, separator)
+					// если после использованного разделителя получили 1 параграф,
+					// то пропускаем и применяем следующий разделитель
+					if len(newParagraphs) == 1 {
+						continue
+					}
+					//log.Printf("🚩🚩 Успешно обработано  по разделителю `%v`", separator)
+					//log.Printf("кол-во параграфов %v, %v", len(newParagraphs), newParagraphs)
+					pars = append(pars, sp.processNewParagraphs(newParagraphs, &builder, separator)...)
+					completed = true
+					break
+				}
+			} else {
+				builder.WriteString(paragraph)
+			}
+
+			// если проверки сверху не сработали записываем параграф как есть
+			if utf8.RuneCountInString(paragraph) > sp.maxParSize && !completed {
+				log.Printf("оставляем длинный параграф как есть: %v, %v", utf8.RuneCountInString(paragraph), paragraph)
+				builder.WriteString(paragraph)
+			}
 
 			if utf8.RuneCountInString(builder.String()) > sp.optParSize {
 				pars = append(pars, builder.String())
@@ -85,23 +121,43 @@ func (sp *Splitter) splitContent(contentBuilder *strings.Builder) []string {
 		}
 
 		if len(pars) == 1 && utf8.RuneCountInString(pars[0]) > sp.maxParSize+sp.optParSize {
-			log.Printf("🚩🚩 long paragraph %v", pars[0])
+			log.Printf("🚩🚩 запускаем разделение по предложениям %v", pars[0])
 			var longBuilder strings.Builder
-			content := pars[0]
-			longBuilder.WriteString(content)
+			longBuilder.WriteString(pars[0])
 			pars = sp.splitLongParagraph(&longBuilder)
 		}
 	} else {
 		pars = append(pars, contentBuilder.String())
 		builder.Reset()
+		contentBuilder.Reset()
 	}
 
-	count := len(pars)
-	if count > 1 {
-		log.Printf("🚩 итого количество фрагментов в параграфе: %v", count)
-	}
+	//count := len(pars)
+	//if count > 1 {
+	//	log.Printf("🚩 итого количество фрагментов в параграфе: %v", count)
+	//}
 
 	return pars
+}
+
+func (sp *Splitter) processNewParagraphs(newParagraphs []string, builder *strings.Builder, separator string) []string {
+	var result []string
+	for _, newParagraph := range newParagraphs {
+
+		builder.WriteString("<p>")
+
+		cleanParagraph := strings.Replace(newParagraph, separator, "", -1)
+		builder.WriteString(cleanParagraph)
+
+		builder.WriteString("</p>")
+
+		if utf8.RuneCountInString(builder.String()) > sp.optParSize {
+			result = append(result, builder.String())
+			builder.Reset()
+		}
+	}
+
+	return result
 }
 
 func (sp *Splitter) splitLongParagraph(longBuilder *strings.Builder) []string {
@@ -151,4 +207,17 @@ func (sp *Splitter) splitLongParagraph(longBuilder *strings.Builder) []string {
 	}
 
 	return pars
+}
+
+func trimPrefixes(longBuilder strings.Builder) {
+	result := longBuilder.String()
+	longBuilder.Reset()
+
+	result = strings.TrimPrefix(result, "<div>")
+	result = strings.TrimSuffix(result, "</div>")
+
+	result = strings.TrimPrefix(result, "<p>")
+	result = strings.TrimSuffix(result, "</p>")
+
+	longBuilder.WriteString(result)
 }
