@@ -24,9 +24,6 @@ func (sp *Splitter) SplitEntry(ctx context.Context, entry feed.Entry) []feed.Ent
 
 	var entries []feed.Entry
 
-	//var contentBuilder strings.Builder
-	//contentBuilder.WriteString(entry.Content)
-
 	contentChunks := sp.splitContent(entry.Content)
 
 	for chunk, content := range contentChunks {
@@ -87,8 +84,8 @@ func (sp *Splitter) splitContent(entryContent string) []string {
 					if len(newParagraphs) == 1 {
 						continue
 					}
-					//log.Printf("🚩🚩 Успешно обработано  по разделителю `%v`", separator)
-					//log.Printf("кол-во параграфов %v, %v", len(newParagraphs), newParagraphs)
+					log.Printf("🚩🚩 Успешно обработано  по разделителю `%v`", separator)
+					log.Printf("кол-во параграфов %v, %v", len(newParagraphs), newParagraphs)
 					pars = append(pars, sp.processNewParagraphs(newParagraphs, &builder, separator)...)
 					completed = true
 					break
@@ -132,9 +129,9 @@ func (sp *Splitter) splitContent(entryContent string) []string {
 		contentBuilder.Reset()
 	}
 
-	//count := len(pars)
+	count := len(pars)
 	//if count > 1 {
-	//	log.Printf("🚩 итого количество фрагментов в параграфе: %v", count)
+	log.Printf("🚩 итого количество фрагментов в параграфе: %v", count)
 	//}
 
 	return pars

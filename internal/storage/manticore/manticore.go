@@ -28,15 +28,16 @@ type Response struct {
 				Title      string `json:"title"`
 				Summary    string `json:"summary"`
 				Content    string `json:"content"`
+				ResourceID int    `json:"resource_id"`
+				Chunk      int    `json:"chunk"`
 				Published  int64  `json:"published"`
 				Updated    int64  `json:"updated"`
+				Created    int64  `json:"created"`
+				UpdatedAt  int64  `json:"updated_at"`
 				Language   string `json:"language"`
 				Url        string `json:"url"`
 				Author     string `json:"author"`
 				Number     string `json:"number"`
-				ResourceID int    `json:"resource_id"`
-				Created    int64  `json:"created"`
-				Chunk      int    `json:"chunk"`
 			} `json:"_source"`
 		} `json:"hits"`
 	} `json:"hits"`
@@ -63,6 +64,7 @@ type DBEntry struct {
 	ResourceID int    `json:"resource_id"`
 	Created    int64  `json:"created"`
 	Chunk      int    `json:"chunk"`
+	UpdatedAt  int64  `json:"updated_at"`
 }
 
 type Client struct {
@@ -89,6 +91,7 @@ func NewDBEntry(entry *feed.Entry) *DBEntry {
 		ResourceID: entry.ResourceID,
 		Created:    castTime(&created),
 		Chunk:      entry.Chunk,
+		UpdatedAt:  castTime(&created),
 	}
 
 	return dbe
@@ -109,8 +112,8 @@ func New(tbl string) (*Client, error) {
 	configuration := openapiclient.NewConfiguration()
 	configuration.Servers = openapiclient.ServerConfigurations{
 		{
-			//URL: "http://manticore_feed:9308",
-			URL:         "http://localhost:9308",
+			URL: "http://manticore_feed:9308",
+			//URL:         "http://localhost:9308",
 			Description: "Default Manticore Search HTTP",
 		},
 	}
@@ -205,6 +208,7 @@ func (c *Client) Update(ctx context.Context, entry *feed.Entry) error {
 		ResourceID: entry.ResourceID,
 		Created:    castTime(entry.Created),
 		Chunk:      entry.Chunk,
+		UpdatedAt:  castTime(entry.UpdatedAt),
 	}
 
 	//marshal into JSON buffer
@@ -292,6 +296,7 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 	updated := time.Unix(dbe.Updated, 0)
 	published := time.Unix(dbe.Published, 0)
 	created := time.Unix(dbe.Created, 0)
+	updatedAt := time.Unix(dbe.UpdatedAt, 0)
 
 	ent := &feed.Entry{
 		ID:         id,
@@ -307,9 +312,84 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 		ResourceID: dbe.ResourceID,
 		Created:    &created,
 		Chunk:      dbe.Chunk,
+		UpdatedAt:  &updatedAt,
 	}
 
 	return ent, nil
+}
+
+func (c *Client) FindAllByUrl(ctx context.Context, url string) ([]feed.Entry, error) {
+	// response from `Search`: SearchRequest
+	searchRequest := *openapiclient.NewSearchRequest(c.Index)
+
+	filter := map[string]interface{}{"url": url}
+	query := map[string]interface{}{"equals": filter}
+	limit := 1000
+	sort := []map[string]interface{}{{"chunk": "asc"}}
+
+	searchRequest.SetQuery(query)
+	searchRequest.SetLimit(int32(limit))
+	searchRequest.SetSort(sort)
+
+	resp, r, err := c.apiClient.SearchAPI.Search(ctx).SearchRequest(searchRequest).Execute()
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+		return nil, fmt.Errorf("Error when calling `SearchAPI.Search.Equals``: %v\n", err)
+	}
+
+	var hits []map[string]interface{}
+	var _id interface{}
+
+	hits = resp.Hits.Hits
+	var entries []feed.Entry
+	for _, hit := range hits {
+
+		_id = hit["_id"]
+		id, err := strconv.ParseInt(_id.(string), 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ID to int64: %v\n", resp)
+		}
+
+		// создаем entry из hit
+		sr := hit["_source"]
+		jsonData, err := json.Marshal(sr)
+
+		var dbe DBEntry
+		err = json.Unmarshal(jsonData, &dbe)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if &dbe == nil {
+			return nil, nil
+		}
+
+		updated := time.Unix(dbe.Updated, 0)
+		published := time.Unix(dbe.Published, 0)
+		created := time.Unix(dbe.Created, 0)
+		updatedAt := time.Unix(dbe.UpdatedAt, 0)
+
+		ent := &feed.Entry{
+			ID:         &id,
+			Language:   dbe.Language,
+			Title:      dbe.Title,
+			Url:        dbe.Url,
+			Updated:    &updated,
+			Published:  &published,
+			Summary:    dbe.Summary,
+			Content:    dbe.Content,
+			Author:     dbe.Author,
+			Number:     dbe.Number,
+			ResourceID: dbe.ResourceID,
+			Created:    &created,
+			Chunk:      dbe.Chunk,
+			UpdatedAt:  &updatedAt,
+		}
+
+		entries = append(entries, *ent)
+	}
+
+	return entries, nil
 }
 
 func makeDBEntry(resp *openapiclient.SearchResponse) *DBEntry {
@@ -415,6 +495,7 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 					ResourceID: source.ResourceID,
 					Created:    source.Created,
 					Chunk:      source.Chunk,
+					UpdatedAt:  source.UpdatedAt,
 				}
 
 				id, err := strconv.ParseInt(hit.Id, 10, 64)
@@ -426,6 +507,7 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 				updated := time.Unix(dbe.Updated, 0)
 				published := time.Unix(dbe.Published, 0)
 				created := time.Unix(dbe.Created, 0)
+				updatedAt := time.Unix(dbe.UpdatedAt, 0)
 
 				chout <- feed.Entry{
 					ID:         &id,
@@ -441,6 +523,7 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 					ResourceID: dbe.ResourceID,
 					Created:    &created,
 					Chunk:      dbe.Chunk,
+					UpdatedAt:  &updatedAt,
 				}
 			}
 

@@ -62,13 +62,15 @@ func process(workerID int, task *Task) {
 
 	store := task.EntriesStorage
 
-	dbe, err := store.Storage.FindByUrl(context.Background(), task.Data.Url)
+	dbe, err := store.Storage.FindAllByUrl(context.Background(), task.Data.Url)
 	e := task.Data
 
 	if err != nil {
 		logger.Error("failed find entry by url", sl.Err(err))
 	}
-	if dbe == nil {
+
+	// если записи в БД нет, то создаем записи
+	if dbe == nil || len(dbe) == 0 {
 
 		e, err = visitUrl(e)
 		if err != nil {
@@ -76,51 +78,48 @@ func process(workerID int, task *Task) {
 			return
 		}
 
-		// Здесь надо осуществить разбивку длинного контента на части newEntries := sp.SplitEntry(ctx, e)
+		// разбиваем контент на части
 		splitEntries := task.Splitter.SplitEntry(context.Background(), *e)
-
+		// итерируемся по полученному срезу частей и каждую часть в БД
 		for _, splitEntry := range splitEntries {
-			id, err := store.Storage.Insert(context.Background(), &splitEntry)
+			err = insertNewEntry(&splitEntry, store.Storage, *logger)
 			if err != nil {
-				logger.Error(
-					"failed insert entry",
-					slog.String("url", e.Url),
-					sl.Err(err),
-				)
 				return
 			}
-			logger.Info(
-				"entry successful inserted",
-				slog.Int64("id", *id),
-				slog.String("url", e.Url),
-			)
 		}
 	} else {
-		if needUpdate(dbe, *e) {
-			e.ID = dbe.ID
+		if needUpdate(&dbe[0], *e) {
+			log.Printf("требуется обновление, кол-во фрагментов в БД:, %v", len(dbe))
 			e, err = visitUrl(e)
 			if err != nil {
 				log.Println("finishing task processing without updating data in manticoresearch")
 				return
 			}
-			// Обязательно присваиваем created дату из БД, иначе будет перезаписан 0
-			e.Created = dbe.Created
 
-			log.Printf("before update url: %v, updated: %v", e.Url, e.Updated)
-			err = store.Storage.Update(context.Background(), e)
-			if err != nil {
-				logger.Error(
-					"failed update entry",
-					slog.String("url", e.Url),
-					sl.Err(err),
-				)
-				return
-			} else {
-				logger.Info(
-					"entry successful updated",
-					slog.Int64("id", *e.ID),
-					slog.String("url", e.Url),
-				)
+			splitEntries := task.Splitter.SplitEntry(context.Background(), *e)
+
+			// всего фрагментов
+			count := len(splitEntries)
+
+			for n, splitEntry := range splitEntries {
+				// Обязательно присваиваем created дату из БД, иначе будет перезаписан 0
+				splitEntry.Created = dbe[0].Created
+
+				timeNow := time.Unix(time.Now().Unix(), 0)
+				splitEntry.UpdatedAt = &timeNow
+
+				if n+1 < count {
+					splitEntry.ID = dbe[n].ID
+					err = updateOldEntry(&splitEntry, store.Storage, *logger)
+					if err != nil {
+						return
+					}
+				} else {
+					err = insertNewEntry(&splitEntry, store.Storage, *logger)
+					if err != nil {
+						return
+					}
+				}
 			}
 		} else {
 			//log.Printf("nothing to insert, ⌛ waiting incoming tasks…")
@@ -128,6 +127,44 @@ func process(workerID int, task *Task) {
 	}
 
 	task.Err = task.f(dbe)
+}
+
+func updateOldEntry(e *feed.Entry, store feed.StorageInterface, logger slog.Logger) error {
+	log.Printf("before update url: %v, updated: %v", e.Url, e.Updated)
+	err := store.Update(context.Background(), e)
+	if err != nil {
+		logger.Error(
+			"failed update entry",
+			slog.String("url", e.Url),
+			sl.Err(err),
+		)
+		return err
+	} else {
+		logger.Info(
+			"entry successful updated",
+			slog.Int64("id", *e.ID),
+			slog.String("url", e.Url),
+		)
+	}
+	return nil
+}
+
+func insertNewEntry(e *feed.Entry, store feed.StorageInterface, logger slog.Logger) error {
+	id, err := store.Insert(context.Background(), e)
+	if err != nil {
+		logger.Error(
+			"failed insert entry",
+			slog.String("url", e.Url),
+			sl.Err(err),
+		)
+		return err
+	}
+	logger.Info(
+		"entry successful inserted",
+		slog.Int64("id", *id),
+		slog.String("url", e.Url),
+	)
+	return nil
 }
 
 // visitUrl вызывает crawler, который парсит контент по ссылке,
@@ -192,12 +229,12 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 		log.Printf("Url %v `updated` fields do not match dbe updated %v, e: %v", dbe.Url, dbeTime, eTime)
 		return true
 	}
-	//TODO обновление закомментировано, в следующих версиях надо удалить
+	////TODO обновление закомментировано, необходимо модифицировать и настроить обновление на сайте мид
 	//intervalT := dbeTime.Add(1 * time.Hour)
 	//log.Printf("dbeTime.Add(1*time.Hour), %v\n", intervalT)
 	//log.Printf("current eTime, %v\n", eTime)
 	//log.Printf("Sub(eTime), %v\n", intervalT.Sub(eTime))
-	// Для ленты сайта mid
+	////Для ленты сайта mid
 	//if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
 	//	log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2, condition id true")
 	//	log.Printf("Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
