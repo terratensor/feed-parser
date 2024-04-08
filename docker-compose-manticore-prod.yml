@@ -25,6 +25,11 @@ services:
 
 volumes:
   manticore:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/common/feed-parser-manticore_manticore
+      o: bind
 
 networks:
   traefik-public:

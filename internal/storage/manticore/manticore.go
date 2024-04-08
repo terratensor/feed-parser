@@ -112,8 +112,8 @@ func New(tbl string) (*Client, error) {
 	configuration := openapiclient.NewConfiguration()
 	configuration.Servers = openapiclient.ServerConfigurations{
 		{
-			URL: "http://manticore_feed:9308",
-			//URL:         "http://localhost:9308",
+			//URL: "http://manticore_feed:9308",
+			URL:         "http://localhost:9308",
 			Description: "Default Manticore Search HTTP",
 		},
 	}
@@ -461,7 +461,7 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 		for {
 			offset := count * limit
 			//maxMatches := offset + limit
-			body := fmt.Sprintf("select * from feed limit %v offset %v option max_matches=%v", limit, offset, indexedDocuments)
+			body := fmt.Sprintf("select * from %v limit %v offset %v option max_matches=%v", c.Index, limit, offset, indexedDocuments)
 			//body := fmt.Sprintf("select * from feed order by id asc limit %v offset %v option max_matches=%v", limit, offset, indexedDocuments)
 
 			resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body).RawResponse(false).Execute()
@@ -539,7 +539,7 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 }
 
 func getIndexStatus(c *Client) int {
-	body := "show index feed status"
+	body := fmt.Sprintf("show index %v status", c.Index)
 	resp, r, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body).RawResponse(true).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling `UtilsAPI.Sql``: %v\n", err)
@@ -567,7 +567,7 @@ func getIndexStatus(c *Client) int {
 
 func (c *Client) Delete(ctx context.Context, id *int64) error {
 
-	deleteDocumentRequest := *openapiclient.NewDeleteDocumentRequest("feed") // DeleteDocumentRequest |
+	deleteDocumentRequest := *openapiclient.NewDeleteDocumentRequest(c.Index) // DeleteDocumentRequest |
 
 	deleteDocumentRequest.Id = id
 
