@@ -7,6 +7,7 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/manticoresoftware/manticoresearch-go v1.0.0
 	github.com/mmcdole/gofeed v1.3.0
+	github.com/spf13/pflag v1.0.5
 	golang.org/x/net v0.21.0
 )
 

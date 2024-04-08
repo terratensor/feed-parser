@@ -14,20 +14,24 @@ type Entry struct {
 	Url        string     `json:"url"`
 	Updated    *time.Time `json:"updated"`
 	Published  *time.Time `json:"published"`
+	Created    *time.Time `json:"created"`
+	UpdatedAt  *time.Time `json:"updated_at"`
 	Summary    string     `json:"summary"`
 	Content    string     `json:"content"`
 	Author     string     `json:"author"`
 	Number     string     `json:"number"`
 	ResourceID int        `json:"resource_id"`
-	Created    *time.Time `json:"created"`
+	Chunk      int        `json:"chunk"`
 }
 
 type StorageInterface interface {
 	FindByUrl(ctx context.Context, url string) (*Entry, error)
+	FindAllByUrl(ctx context.Context, url string) ([]Entry, error)
 	Insert(ctx context.Context, entry *Entry) (*int64, error)
 	Update(ctx context.Context, entry *Entry) error
 	Bulk(ctx context.Context, entries *[]Entry) error
-	FindAll(ctx context.Context, limit int)
+	FindAll(ctx context.Context, limit int) (chan Entry, error)
+	Delete(ctx context.Context, id *int64) error
 }
 
 type Entries struct {
@@ -38,6 +42,31 @@ func NewFeedStorage(store StorageInterface) *Entries {
 	return &Entries{
 		Storage: store,
 	}
+}
+
+func (es *Entries) FindAll(ctx context.Context, limit int) (chan Entry, error) {
+
+	chin, err := es.Storage.FindAll(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	chout := make(chan Entry, 100)
+	go func() {
+		defer close(chout)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case l, ok := <-chin:
+				if !ok {
+					return
+				}
+				chout <- l
+			}
+		}
+	}()
+	return chout, nil
 }
 
 func MakeEntries(items []*gofeed.Item, url link.Link) []Entry {
