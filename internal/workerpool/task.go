@@ -229,19 +229,18 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 		log.Printf("Url %v `updated` fields do not match dbe updated %v, e: %v", dbe.Url, dbeTime, eTime)
 		return true
 	}
-	////TODO обновление закомментировано, необходимо модифицировать и настроить обновление на сайте мид
+
 	//intervalT := dbeTime.Add(1 * time.Hour)
 	//log.Printf("dbeTime.Add(1*time.Hour), %v\n", intervalT)
 	//log.Printf("current eTime, %v\n", eTime)
 	//log.Printf("Sub(eTime), %v\n", intervalT.Sub(eTime))
-	////Для ленты сайта mid
-	//if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
-	//	log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2, condition id true")
-	//	log.Printf("Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
-	//	//return true
-	//	// Пока только фиксируем и не обновляем, возвращаем false
-	//	return false
-	//}
+
+	//Для ленты сайта mid
+	if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
+		log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2, condition id true")
+		log.Printf("🚩 Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
+		return true
+	}
 
 	return false
 }
