@@ -98,17 +98,14 @@ func process(workerID int, task *Task) {
 
 			splitEntries := task.Splitter.SplitEntry(context.Background(), *e)
 
-			// всего фрагментов
-			count := len(splitEntries)
-
 			for n, splitEntry := range splitEntries {
 				// Обязательно присваиваем created дату из БД, иначе будет перезаписан 0
 				splitEntry.Created = dbe[0].Created
 
 				timeNow := time.Unix(time.Now().Unix(), 0)
 				splitEntry.UpdatedAt = &timeNow
-
-				if n+1 < count {
+				// пока n меньше, чем всего фрагментов в БД, обновляем, иначе создаем новые
+				if n < len(dbe) {
 					splitEntry.ID = dbe[n].ID
 					err = updateOldEntry(&splitEntry, store.Storage, *logger)
 					if err != nil {
