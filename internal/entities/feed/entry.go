@@ -31,6 +31,7 @@ type StorageInterface interface {
 	Update(ctx context.Context, entry *Entry) error
 	Bulk(ctx context.Context, entries *[]Entry) error
 	FindAll(ctx context.Context, limit int) (chan Entry, error)
+	FindDuration(ctx context.Context, duration time.Duration) (chan Entry, error)
 	Delete(ctx context.Context, id *int64) error
 }
 
@@ -47,6 +48,30 @@ func NewFeedStorage(store StorageInterface) *Entries {
 func (es *Entries) FindAll(ctx context.Context, limit int) (chan Entry, error) {
 
 	chin, err := es.Storage.FindAll(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	chout := make(chan Entry, 100)
+	go func() {
+		defer close(chout)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case l, ok := <-chin:
+				if !ok {
+					return
+				}
+				chout <- l
+			}
+		}
+	}()
+	return chout, nil
+}
+
+func (es *Entries) Find(ctx context.Context, duration time.Duration) (chan Entry, error) {
+	chin, err := es.Storage.FindDuration(ctx, duration)
 	if err != nil {
 		return nil, err
 	}
