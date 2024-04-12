@@ -68,4 +68,5 @@ jobs:
           BUILD_NUMBER: ${GITHUB_RUN_NUMBER}
           HOST: ${{ secrets.PRODUCTION_HOST }}
           PORT: ${{ secrets.PRODUCTION_PORT }}
+          SERVICE_INDEX_NOW_KEY: ${{ secrets.SERVICE_INDEX_NOW_KEY }}
         if: ${{ github.ref == 'refs/heads/main' }}
