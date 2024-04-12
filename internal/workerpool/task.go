@@ -65,6 +65,8 @@ func process(workerID int, task *Task) {
 	dbe, err := store.Storage.FindAllByUrl(context.Background(), task.Data.Url)
 	e := task.Data
 
+	var createdEntry feed.Entry
+
 	if err != nil {
 		logger.Error("failed find entry by url", sl.Err(err))
 	}
@@ -87,6 +89,7 @@ func process(workerID int, task *Task) {
 				return
 			}
 		}
+		createdEntry = *e
 	} else {
 		if needUpdate(&dbe[0], *e) {
 			log.Printf("требуется обновление, кол-во фрагментов в БД:, %v", len(dbe))
@@ -123,7 +126,7 @@ func process(workerID int, task *Task) {
 		}
 	}
 
-	task.Err = task.f(dbe)
+	task.Err = task.f(createdEntry)
 }
 
 func updateOldEntry(e *feed.Entry, store feed.StorageInterface, logger slog.Logger) error {

@@ -13,7 +13,8 @@ services:
     volumes:
       - config:/app/config
     environment:
-      CONFIG_PATH: './config/local.yaml'
+      CONFIG_PATH: './config/prod.yaml'
+      INDEX_NOW_KEY: ${SERVICE_INDEX_NOW_KEY}
     command: './feed-parser-service'
     deploy:
       placement:
