@@ -3,14 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gorilla/feeds"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/rssfeed"
 	"github.com/terratensor/feed-parser/internal/storage/manticore"
 	"log"
 	"os"
 	"os/signal"
 	"time"
 )
+
+var authorMap = map[int]string{
+	1: "Президент Российской Федерации",
+	2: "Министерство иностранных дел Российской Федерации",
+	3: "Министерство обороны Российской Федерации",
+}
 
 func main() {
 
@@ -22,19 +28,17 @@ func main() {
 	}
 	entries := feed.NewFeedStorage(manticoreClient)
 
-	limit := 203
-
-	ch, err := entries.Find(ctx, 24*8*time.Hour)
+	duration := 24 * 8 * time.Hour
+	limit := entries.Storage.CalculateLimitCount(duration)
+	ch, err := entries.Find(ctx, duration)
 	if err != nil {
 		log.Fatalf("failed to find all entries: %v", err)
 	}
 
-	svoddFeed := &feeds.Feed{
+	svoddFeed := &rssfeed.RssFeed{
 		Title:       "Поиск по kremlin.ru, mid.ru, mil.ru",
-		Link:        &feeds.Link{Href: "https://rss.feed.svodd.ru"},
+		Link:        "https://rss.feed.svodd.ru",
 		Description: "Поиск по сайтам Президента России, Министерства иностранных дел Российской Федерации, Министерство обороны Российской Федерации",
-		Updated:     time.Now(),
-		Created:     time.Now(),
 	}
 	count := 0
 	for {
@@ -46,59 +50,53 @@ func main() {
 				return
 			}
 
-			link := makeEntryUrl(e.Url)
+			link := makeEntryUrl(e.Url, e.Language)
 
-			//log.Println(e.ID)
-			item := &feeds.Item{
+			item := &rssfeed.RssItem{
 				Title:       e.Title,
-				Id:          link,
-				Updated:     *e.Published,
-				Description: e.Summary,
-				Link:        &feeds.Link{Href: link},
-				Author:      &feeds.Author{Name: e.Author},
+				Link:        link,
+				PubDate:     rssfeed.AnyTimeFormat(time.RFC1123Z, *e.Published),
+				Author:      populateAuthorField(e.Author, e.ResourceID),
 				Content:     e.Content,
+				Description: e.Summary,
 			}
-
-			//log.Println(item.Title)
 
 			svoddFeed.Add(item)
 			count++
-
-			//svoddFeed.Add(&feeds.Item{
-			//	Title:       e.Title,
-			//	Id:          e.Url,
-			//	Updated:     *e.UpdatedAt,
-			//	Description: e.Summary,
-			//	Author:      &feeds.Author{Name: e.Author},
-			//	//Link:        &feeds.Link{Href: e.Url},
-			//
-			//})
-
-			//rss, err := feed.ToRss()
-			//if err != nil {
-			//	log.Fatal(err)
-			//}
-
-			//json, err := feed.ToJSON()
-			//if err != nil {
-			//	log.Fatal(err)
-			//}
-
-			//fmt.Println(atom, "\n", rss, "\n", json)
-
 		}
 		if count >= limit {
-			log.Println("here")
 			break
 		}
 	}
-	atom, err := svoddFeed.ToAtom()
+
+	file, err := os.Create("filename.xml")
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("failed to create file: %v", err)
 	}
-	fmt.Println(atom)
+	defer file.Close()
+
+	err = rssfeed.WriteXML(svoddFeed, file)
+	if err != nil {
+		log.Printf("failed to write xml: %v", err)
+	}
+
+	//fmt.Printf("🚩 Всего записей: %d\n", count)
 }
 
-func makeEntryUrl(url string) string {
-	return fmt.Sprintf("https://feed.svodd.ru/entry?url=%v", url)
+func populateAuthorField(author string, resourceID int) string {
+	if val, ok := authorMap[resourceID]; ok {
+		if resourceID == 3 && author != "" {
+			return author
+		}
+		return val
+	}
+	return author
+}
+
+func makeEntryUrl(url string, language string) string {
+	base := "https://feed.svodd.ru"
+	if language != "ru" && language != "" {
+		base += "/" + language
+	}
+	return fmt.Sprintf("%s/entry?url=%v", base, url)
 }
