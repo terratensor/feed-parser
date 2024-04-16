@@ -7,7 +7,6 @@ import (
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/indexnow"
-	"github.com/terratensor/feed-parser/internal/model/link"
 	"github.com/terratensor/feed-parser/internal/parser"
 	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/workerpool"
@@ -26,14 +25,10 @@ func main() {
 	ch := make(chan feed.Entry, cfg.EntryChanBuffer)
 
 	wg := &sync.WaitGroup{}
-	for _, url := range cfg.URLS {
+	for _, parserCfg := range cfg.Parsers {
 
 		wg.Add(1)
-		p := parser.NewParser(link.Link{
-			Url:        url.Url,
-			Lang:       url.Lang,
-			ResourceID: url.ResourceID,
-		}, *cfg.Delay, *cfg.RandomDelay)
+		p := parser.NewParser(parserCfg, *cfg.Delay, *cfg.RandomDelay)
 
 		go p.Run(ch, fp, wg)
 	}
