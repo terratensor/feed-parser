@@ -29,6 +29,33 @@ services:
       restart_policy:
         condition: on-failure
 
+  server:
+    image: ${REGISTRY:-localhost:5002}/feed-parser-srv:main-1
+    build:
+      dockerfile: Dockerfile_srv
+    ports:
+      - "8011:8011"
+    environment:
+      SRV_PORT: 8011
+    restart: always
+    depends_on:
+      - registry
+    networks:
+      - feed-parser-net
+    volumes:
+      - static:/app/static
+    command: './feed-parser-srv'
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.feed-srv.rule=Host(`rss.localhost`)
+      - traefik.http.routers.feed-srv.entryPoints=http
+      - traefik.http.services.feed-srv.loadBalancer.server.port=8011
+
   kremlin-indexer:
     image: ${REGISTRY:-localhost:5002}/feed-kremlin-indexer:main-1
     build:
@@ -38,6 +65,7 @@ services:
     volumes:
       - config:/app/config
     networks:
+      - traefik-public
       - feed-parser-net
     environment:
       CONFIG_PATH: './config/kremlin/local.yaml'
@@ -85,9 +113,11 @@ services:
 
 volumes:
   config:
+  static:
 
 networks:
   traefik-public:
     external: true
   feed-parser-net:
     name: feed-parser-net
+    external: true

@@ -69,7 +69,7 @@ func main() {
 		}
 	}
 
-	file, err := os.Create("filename.xml")
+	file, err := os.Create("./static/rss.xml")
 	if err != nil {
 		log.Printf("failed to create file: %v", err)
 	}
@@ -80,7 +80,7 @@ func main() {
 		log.Printf("failed to write xml: %v", err)
 	}
 
-	//fmt.Printf("🚩 Всего записей: %d\n", count)
+	log.Printf("🚩 Создан новый rss.xml файл. Всего записей: %d\n", count)
 }
 
 func populateAuthorField(author string, resourceID int) string {

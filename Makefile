@@ -22,12 +22,17 @@ docker-build:
 dev-docker-build:
 	REGISTRY=localhost IMAGE_TAG=main-1 make docker-build
 
-docker-build: docker-build-service docker-build-kremlin-indexer docker-build-mil-indexer docker-build-mid-indexer
+docker-build: docker-build-service docker-build-server docker-build-kremlin-indexer docker-build-mil-indexer docker-build-mid-indexer
 
 docker-build-service:
 	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
     	--tag ${REGISTRY}/feed-parser-service:${IMAGE_TAG} \
     	--file ./Dockerfile .
+
+docker-build-server:
+	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
+    	--tag ${REGISTRY}/feed-parser-srv:${IMAGE_TAG} \
+    	--file ./Dockerfile_srv .
 
 docker-build-kremlin-indexer:
 	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
@@ -46,6 +51,7 @@ docker-build-mid-indexer:
 
 push:
 	docker push ${REGISTRY}/feed-parser-service:${IMAGE_TAG}
+	docker push ${REGISTRY}/feed-parser-srv:${IMAGE_TAG}
 	docker push ${REGISTRY}/feed-kremlin-indexer:${IMAGE_TAG}
 	docker push ${REGISTRY}/feed-mil-indexer:${IMAGE_TAG}
 	docker push ${REGISTRY}/feed-mid-indexer:${IMAGE_TAG}

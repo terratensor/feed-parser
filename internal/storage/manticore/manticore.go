@@ -112,8 +112,8 @@ func New(tbl string) (*Client, error) {
 	configuration := openapiclient.NewConfiguration()
 	configuration.Servers = openapiclient.ServerConfigurations{
 		{
-			//URL: "http://manticore_feed:9308",
-			URL:         "http://localhost:9308",
+			URL: "http://manticore_feed:9308",
+			//URL:         "http://localhost:9308",
 			Description: "Default Manticore Search HTTP",
 		},
 	}

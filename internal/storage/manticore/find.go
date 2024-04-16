@@ -3,7 +3,6 @@ package manticore
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 )
@@ -23,8 +22,6 @@ func (c *Client) FindDuration(ctx context.Context, duration time.Duration) (chan
 		defer close(chout)
 
 		body := fmt.Sprintf("SELECT url FROM %v WHERE chunk=1 AND published > %v ORDER BY published DESC limit %v option max_matches=%v", c.Index, intervalDate, limit, maxMatches)
-
-		log.Printf("body: %v", body)
 
 		resp, _, err := c.apiClient.UtilsAPI.Sql(context.Background()).Body(body).RawResponse(true).Execute()
 		if err != nil {
