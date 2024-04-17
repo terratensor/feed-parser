@@ -230,16 +230,13 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 		return true
 	}
 
-	//intervalT := dbeTime.Add(1 * time.Hour)
-	//log.Printf("dbeTime.Add(1*time.Hour), %v\n", intervalT)
-	//log.Printf("current eTime, %v\n", eTime)
-	//log.Printf("Sub(eTime), %v\n", intervalT.Sub(eTime))
-
-	//Для ленты сайта mid
+	//Для ленты сайта mid language ru
 	if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
-		log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2, condition id true")
-		log.Printf("🚩 Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
-		return true
+		if dbe.Language == "ru" {
+			log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2, lang ru, condition id true")
+			log.Printf("🚩 Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
+			return true
+		}
 	}
 
 	return false
