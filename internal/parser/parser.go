@@ -41,7 +41,7 @@ func NewParser(cfg config.Parser, delay time.Duration, randomDelay time.Duration
 
 func (p *Parser) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) {
 
-	log.Printf("🚩 run parser with params: delay: %v, random delay: %v, url: %v", p.Delay, p.RandomDelay, p.Link.Url)
+	log.Printf("🚩 run parser: delay: %v, random delay: %v, url: %v", p.Delay, p.RandomDelay, p.Link.Url)
 
 	defer wg.Done()
 
