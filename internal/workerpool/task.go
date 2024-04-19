@@ -230,11 +230,27 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 		return true
 	}
 
-	//Для ленты сайта mid language ru
-	if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
-		if dbe.Language == "ru" {
-			log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2, lang ru, condition id true")
-			log.Printf("🚩 Url %v `updated` fields do not match dbe updated dbe: %v, e: %v ", dbe.Url, dbeTime, eTime)
+	//Для ленты сайта mid language ru. Проверка обновления записи каждый час
+	if dbe.Language == "ru" {
+		if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
+			log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && RID == 2, lang %v", dbe.Language)
+			log.Printf("🚩 Url %v updated. DB time %v, current time: %v ", dbe.Url, dbeTime, eTime)
+			return true
+		}
+	}
+	//Для ленты сайта mid language en. Проверка обновления записи каждые 6 часов
+	if dbe.Language == "en" {
+		if dbeTime.Add(6*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
+			log.Printf("dbeTime.Add(6*time.Hour).Sub(eTime) <= 0 && RID == 2, lang %v", dbe.Language)
+			log.Printf("🚩 Url %v updated. DB time %v, current time: %v ", dbe.Url, dbeTime, eTime)
+			return true
+		}
+	}
+	//Для ленты сайта mid language de,fr,ed,pt. Проверка обновления записи каждые 24 часа
+	if dbe.Language == "de" || dbe.Language == "fr" || dbe.Language == "es" || dbe.Language == "pt" {
+		if dbeTime.Add(24*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
+			log.Printf("dbeTime.Add(24*time.Hour).Sub(eTime) <= 0 && RID == 2, lang %v", dbe.Language)
+			log.Printf("🚩 Url %v updated. DB time %v, current time: %v ", dbe.Url, dbeTime, eTime)
 			return true
 		}
 	}
