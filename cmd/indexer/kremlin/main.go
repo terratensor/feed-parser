@@ -21,7 +21,7 @@ func main() {
 	ch := make(chan feed.Entry, cfg.EntryChanBuffer)
 
 	wg := &sync.WaitGroup{}
-	for _, url := range cfg.URLS {
+	for _, url := range cfg.Parsers {
 
 		wg.Add(1)
 		kremlinIndexer := kremlin.NewIndexer(link.Link{

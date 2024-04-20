@@ -11,18 +11,20 @@ type Config struct {
 	Env             string         `yaml:"env" env-default:"development"`
 	Workers         int            `yaml:"workers" env-default:"5"`
 	Delay           *time.Duration `yaml:"delay" env-default:"60s"`
-	RandomDelay     *time.Duration `yaml:"random_delay"  env-default:"150s"`
+	RandomDelay     *time.Duration `yaml:"random_delay" env-default:"150s"`
 	ManticoreIndex  string         `yaml:"manticore_index"`
 	EntryChanBuffer int            `yaml:"entry_chan_buffer" env-default:"20"`
 	Splitter        Splitter       `yaml:"splitter"`
-	URLS            []Link         `yaml:"parsers"`
+	Parsers         []Parser       `yaml:"parsers"`
 }
 
-type Link struct {
-	Url        string `yaml:"url"`
-	Lang       string `yaml:"lang"`
-	ResourceID int    `yaml:"resource_id"`
-	UserAgent  string `yaml:"user_agent"`
+type Parser struct {
+	Url         string         `yaml:"url"`
+	Lang        string         `yaml:"lang"`
+	ResourceID  int            `yaml:"resource_id"`
+	UserAgent   string         `yaml:"user_agent,omitempty"`
+	Delay       *time.Duration `yaml:"delay,omitempty"`
+	RandomDelay *time.Duration `yaml:"random_delay,omitempty"`
 }
 
 type Splitter struct {

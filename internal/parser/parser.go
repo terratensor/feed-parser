@@ -3,6 +3,7 @@ package parser
 import (
 	"context"
 	"github.com/mmcdole/gofeed"
+	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/htmlnode"
 	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
@@ -21,9 +22,17 @@ type Parser struct {
 }
 
 // NewParser creates a new Parser with the given URL, delay, and randomDelay.
-func NewParser(url link.Link, delay time.Duration, randomDelay time.Duration) *Parser {
+func NewParser(cfg config.Parser, delay time.Duration, randomDelay time.Duration) *Parser {
+
+	newLink := link.NewLink(cfg.Url, cfg.Lang, cfg.ResourceID, cfg.UserAgent)
+	if cfg.Delay != nil {
+		delay = *cfg.Delay
+	}
+	if cfg.RandomDelay != nil {
+		randomDelay = *cfg.RandomDelay
+	}
 	np := &Parser{
-		Link:        url,
+		Link:        *newLink,
 		Delay:       delay,
 		RandomDelay: randomDelay,
 	}
@@ -31,6 +40,9 @@ func NewParser(url link.Link, delay time.Duration, randomDelay time.Duration) *P
 }
 
 func (p *Parser) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) {
+
+	log.Printf("🚩 run parser: delay: %v, random delay: %v, url: %v", p.Delay, p.RandomDelay, p.Link.Url)
+
 	defer wg.Done()
 
 	for {

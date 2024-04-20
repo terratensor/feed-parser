@@ -1,15 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/app"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
-	"github.com/terratensor/feed-parser/internal/model/link"
+	"github.com/terratensor/feed-parser/internal/indexnow"
 	"github.com/terratensor/feed-parser/internal/parser"
 	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/workerpool"
 	"log"
+	"log/slog"
+	"net/url"
 	"sync"
 )
 
@@ -22,14 +25,10 @@ func main() {
 	ch := make(chan feed.Entry, cfg.EntryChanBuffer)
 
 	wg := &sync.WaitGroup{}
-	for _, url := range cfg.URLS {
+	for _, parserCfg := range cfg.Parsers {
 
 		wg.Add(1)
-		p := parser.NewParser(link.Link{
-			Url:        url.Url,
-			Lang:       url.Lang,
-			ResourceID: url.ResourceID,
-		}, *cfg.Delay, *cfg.RandomDelay)
+		p := parser.NewParser(parserCfg, *cfg.Delay, *cfg.RandomDelay)
 
 		go p.Run(ch, fp, wg)
 	}
@@ -40,9 +39,16 @@ func main() {
 	sp := splitter.NewSplitter(cfg.Splitter.OptChunkSize, cfg.Splitter.MaxChunkSize)
 	entriesStore := app.NewEntriesStorage(cfg.ManticoreIndex)
 
+	indexNow := indexnow.NewIndexNow()
+
 	go func() {
 		for {
 			task := workerpool.NewTask(func(data interface{}) error {
+				if cfg.Env != "prod" {
+					return nil
+				}
+				e := data.(feed.Entry)
+				processEntry(e, indexNow)
 				return nil
 			}, <-ch, sp, entriesStore)
 			pool.AddTask(task)
@@ -53,4 +59,28 @@ func main() {
 
 	wg.Wait()
 	log.Println("finished, all workers successfully stopped.")
+}
+
+func processEntry(e feed.Entry, indexNow *indexnow.IndexNow) {
+	if e.Url != "" {
+
+		var u = url.URL{
+			Scheme: "https",
+			Host:   "feed.svodd.ru",
+			Path:   "entry",
+		}
+		q := u.Query()
+		q.Set("url", e.Url)
+		u.RawQuery = q.Encode()
+
+		if e.Language != "ru" && e.Language != "" {
+			u.Path = fmt.Sprintf("%v/entry", e.Language)
+		}
+
+		err := indexNow.Get(u.String())
+
+		if err != nil {
+			slog.Error("indexNow error: %v", err)
+		}
+	}
 }
