@@ -46,15 +46,15 @@ services:
         constraints: [ node.role == manager ]
       restart_policy:
         condition: on-failure
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.http.routers.feed-srv.rule=Host(`rss.feed.svodd.ru`)
-      - traefik.http.services.feed-srv.loadBalancer.server.port=8000
-      - traefik.http.routers.feed-srv.middlewares=frontend-redirect,secure-headers
-      - traefik.http.routers.feed-srv.entryPoints=https
-      - traefik.http.routers.feed-srv.tls=true
-      - traefik.http.routers.feed-srv.tls.certResolver=letsEncrypt
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+        - traefik.http.routers.feed-srv.rule=Host(`rss.feed.svodd.ru`)
+        - traefik.http.services.feed-srv.loadBalancer.server.port=8000
+        - traefik.http.routers.feed-srv.middlewares=frontend-redirect,secure-headers
+        - traefik.http.routers.feed-srv.entryPoints=https
+        - traefik.http.routers.feed-srv.tls=true
+        - traefik.http.routers.feed-srv.tls.certResolver=letsEncrypt
 
   kremlin-indexer:
     image: ${REGISTRY}/feed-kremlin-indexer:${IMAGE_TAG}

@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 var authorMap = map[int]string{
@@ -71,7 +72,8 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 		Link:        "https://rss.feed.svodd.ru",
 		Description: "Поиск по сайтам Президента России, Министерства иностранных дел Российской Федерации, Министерство обороны Российской Федерации",
 	}
-	count := 0
+	limitCount := 0
+	itemCount := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -83,6 +85,11 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 
 			link := makeEntryUrl(e.Url, e.Language)
 
+			if utf8.RuneCountInString(e.Title) > 200 {
+				limitCount++
+				continue
+			}
+
 			item := &rssfeed.RssItem{
 				Title:       e.Title,
 				Link:        link,
@@ -93,9 +100,10 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 			}
 
 			svoddFeed.Add(item)
-			count++
+			itemCount++
+			limitCount++
 		}
-		if count >= limit {
+		if limitCount >= limit {
 			break
 		}
 	}
@@ -111,7 +119,7 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 		log.Printf("failed to write xml: %v", err)
 	}
 
-	log.Printf("🚩 Создан rss.xml. Всего записей: %d\n", count)
+	log.Printf("🚩 Создан rss.xml. Всего записей: %d\n", itemCount)
 }
 
 func populateAuthorField(author string, resourceID int) string {
