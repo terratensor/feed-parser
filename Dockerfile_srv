@@ -10,7 +10,7 @@ RUN go mod download
 COPY . .
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o ./feed-parser-srv ./cmd/server
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o ./feed-server ./cmd/server
 
 # 2
 
@@ -18,14 +18,12 @@ FROM scratch
 
 WORKDIR /app
 
-COPY --from=builder /app/feed-parser-srv /app/feed-parser-srv
+COPY --from=builder /app/feed-server /app/feed-server
 COPY --from=builder /app/static /app/static
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 ENV TZ=Europe/Moscow
 
-ARG SRV_PORT
-ENV SRV_PORT=${SRV_PORT}
-EXPOSE $PORT
+EXPOSE 8000
 
-CMD ["./feed-parser-srv"]
+CMD ["./feed-server"]

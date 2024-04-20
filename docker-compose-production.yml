@@ -5,9 +5,6 @@ services:
     image: ${REGISTRY}/feed-parser-service:${IMAGE_TAG}
     build:
       dockerfile: Dockerfile
-    restart: always
-    depends_on:
-      - registry
     networks:
       - feed-parser-net
     volumes:
@@ -22,12 +19,53 @@ services:
       restart_policy:
         condition: on-failure
 
+  rssfeed:
+    image: ${REGISTRY}/feed-static-generator:${IMAGE_TAG}
+    build:
+      dockerfile: Dockerfile_static
+    environment:
+      MANTICORE_INDEX: 'feed'
+      GENERATOR_DELAY: '60s'
+    networks:
+      - feed-parser-net
+    volumes:
+      - static:/app/static
+    command: './feed-static-generator'
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+      restart_policy:
+        condition: on-failure
+
+  server:
+    image: ${REGISTRY}/feed-server:${IMAGE_TAG}
+    build:
+      dockerfile: Dockerfile_srv
+    networks:
+      - traefik-public
+      - feed-parser-net
+    volumes:
+      - static:/app/static
+    command: './feed-server'
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+      restart_policy:
+        condition: on-failure
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.feed-srv.rule=Host(`rss.feed.svodd.ru`)
+      - traefik.http.services.feed-srv.loadBalancer.server.port=8000
+      - traefik.http.routers.feed-srv.middlewares=frontend-redirect,secure-headers
+      - traefik.http.routers.feed-srv.entryPoints=https
+      - traefik.http.routers.feed-srv.tls=true
+      - traefik.http.routers.feed-srv.tls.certResolver=letsEncrypt
+
   kremlin-indexer:
     image: ${REGISTRY}/feed-kremlin-indexer:${IMAGE_TAG}
     build:
       dockerfile: Dockerfile_kremlin
-    depends_on:
-      - registry
     networks:
       - feed-parser-net
     volumes:

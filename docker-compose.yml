@@ -31,9 +31,12 @@ services:
         condition: on-failure
 
   rssfeed:
-    image: ${REGISTRY:-localhost:5002}/feed-rssfeed-generator:main-1
+    image: ${REGISTRY:-localhost:5002}/feed-static-generator:main-1
     build:
-      dockerfile: Dockerfile_rss
+      dockerfile: Dockerfile_static
+    environment:
+      MANTICORE_INDEX: 'feed'
+      GENERATOR_DELAY: '60s'
     restart: always
     depends_on:
       - registry
@@ -41,20 +44,18 @@ services:
       - feed-parser-net
     volumes:
       - static:/app/static
-    command: './feed-rssfeed-generator'
+    command: './feed-static-generator'
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
   server:
-    image: ${REGISTRY:-localhost:5002}/feed-parser-srv:main-1
+    image: ${REGISTRY:-localhost:5002}/feed-server:main-1
     build:
       dockerfile: Dockerfile_srv
     ports:
-      - "8011:8011"
-    environment:
-      SRV_PORT: 8011
+      - "8000:8000"
     restart: always
     depends_on:
       - registry
@@ -63,7 +64,7 @@ services:
       - feed-parser-net
     volumes:
       - static:/app/static
-    command: './feed-parser-srv'
+    command: './feed-server'
     deploy:
       replicas: 1
       restart_policy:
@@ -73,7 +74,7 @@ services:
       - traefik.docker.network=traefik-public
       - traefik.http.routers.feed-srv.rule=Host(`rss.localhost`)
       - traefik.http.routers.feed-srv.entryPoints=http
-      - traefik.http.services.feed-srv.loadBalancer.server.port=8011
+      - traefik.http.services.feed-srv.loadBalancer.server.port=8000
 
   kremlin-indexer:
     image: ${REGISTRY:-localhost:5002}/feed-kremlin-indexer:main-1

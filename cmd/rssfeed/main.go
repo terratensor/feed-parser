@@ -22,7 +22,19 @@ var authorMap = map[int]string{
 func main() {
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
-	manticoreClient, err := manticore.New("feed")
+
+	delayStr := os.Getenv("GENERATOR_DELAY")
+	delay, err := time.ParseDuration(delayStr)
+	if err != nil {
+		delay = 15 * time.Minute
+	}
+
+	index := os.Getenv("MANTICORE_INDEX")
+	if index == "" {
+		index = "feed"
+	}
+
+	manticoreClient, err := manticore.New(index)
 	if err != nil {
 		log.Printf("failed to initialize manticore client: %v", err)
 		os.Exit(1)
@@ -37,7 +49,7 @@ func main() {
 		wg.Add(1)
 		go generateFeed(ctx, entries, duration, wg)
 		wg.Wait()
-		time.Sleep(30 * time.Second)
+		time.Sleep(delay)
 	}
 }
 

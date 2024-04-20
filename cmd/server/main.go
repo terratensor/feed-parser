@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func handlerRssFeed(w http.ResponseWriter, r *http.Request) {
 
 	streamXmlBytes, err := os.ReadFile("./static/rss.xml")
 
@@ -41,8 +42,30 @@ func main() {
 	tz, _ := tnow.Zone()
 	log.Printf("Local time zone %s. Server started at %s", tz,
 		tnow.Format("2006-01-02T15:04:05.000 MST"))
-	log.Printf("Listening on port %s", os.Getenv("SRV_PORT"))
+	log.Println("Listening on port 8000")
 
-	http.HandleFunc("/rss.xml", handler)
-	log.Fatal(http.ListenAndServe(":8011", nil))
+	logger := slog.New(
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+	)
+
+	mux := http.NewServeMux()
+	handler := http.HandlerFunc(handlerRssFeed)
+	mux.Handle("/rss.xml", logMiddleware(handler, logger))
+	log.Fatal(http.ListenAndServe(":8000", mux))
+}
+
+func logMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(
+			"request",
+			slog.String("method", r.Method),
+			slog.String("URL", r.URL.String()),
+			slog.String("proto", r.Proto),
+			slog.String("host", r.Host),
+			slog.String("remote", r.RemoteAddr),
+			slog.String("requestURI", r.RequestURI),
+			slog.String("userAgent", r.UserAgent()),
+		)
+		next.ServeHTTP(w, r)
+	})
 }
