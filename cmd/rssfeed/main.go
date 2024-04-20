@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
 )
 
@@ -21,6 +20,7 @@ var authorMap = map[int]string{
 
 func main() {
 
+	log.Printf("Service started at %s", time.Now().Format("2006-01-02T15:04:05.000 MST"))
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 
 	delayStr := os.Getenv("GENERATOR_DELAY")
@@ -28,11 +28,13 @@ func main() {
 	if err != nil {
 		delay = 15 * time.Minute
 	}
+	log.Printf("Delay: %s", delay)
 
 	index := os.Getenv("MANTICORE_INDEX")
 	if index == "" {
 		index = "feed"
 	}
+	log.Printf("Index: %s", index)
 
 	manticoreClient, err := manticore.New(index)
 	if err != nil {
@@ -43,19 +45,17 @@ func main() {
 
 	duration := 24 * 8 * time.Hour
 
-	wg := &sync.WaitGroup{}
+	//wg := &sync.WaitGroup{}
 
 	for {
-		wg.Add(1)
-		go generateFeed(ctx, entries, duration, wg)
-		wg.Wait()
+		generateFeed(ctx, entries, duration)
 		time.Sleep(delay)
 	}
 }
 
-func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Duration, wg *sync.WaitGroup) {
+func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Duration) {
 
-	defer wg.Done()
+	//defer wg.Done()
 
 	limit := entries.Storage.CalculateLimitCount(duration)
 	ch, err := entries.Find(ctx, duration)

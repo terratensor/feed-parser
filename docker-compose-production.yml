@@ -3,8 +3,6 @@ services:
 
   service:
     image: ${REGISTRY}/feed-parser-service:${IMAGE_TAG}
-    build:
-      dockerfile: Dockerfile
     networks:
       - feed-parser-net
     volumes:
@@ -21,8 +19,6 @@ services:
 
   rssfeed:
     image: ${REGISTRY}/feed-static-generator:${IMAGE_TAG}
-    build:
-      dockerfile: Dockerfile_static
     environment:
       MANTICORE_INDEX: 'feed'
       GENERATOR_DELAY: '60s'
@@ -39,8 +35,6 @@ services:
 
   server:
     image: ${REGISTRY}/feed-server:${IMAGE_TAG}
-    build:
-      dockerfile: Dockerfile_srv
     networks:
       - traefik-public
       - feed-parser-net
@@ -64,8 +58,6 @@ services:
 
   kremlin-indexer:
     image: ${REGISTRY}/feed-kremlin-indexer:${IMAGE_TAG}
-    build:
-      dockerfile: Dockerfile_kremlin
     networks:
       - feed-parser-net
     volumes:
@@ -83,10 +75,6 @@ services:
 
   mil-indexer:
     image: ${REGISTRY}/feed-mil-indexer:${IMAGE_TAG}
-    build:
-      dockerfile: Dockerfile_mil
-    depends_on:
-      - registry
     volumes:
       - config:/app/config
     networks:
@@ -103,10 +91,6 @@ services:
 
   mid-indexer:
     image: ${REGISTRY}/feed-mid-indexer:${IMAGE_TAG}
-    build:
-      dockerfile: Dockerfile_mid
-    depends_on:
-      - registry
     volumes:
       - config:/app/config
     networks:
