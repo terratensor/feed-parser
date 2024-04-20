@@ -123,6 +123,7 @@ services:
 
 volumes:
   config:
+  static:
 
 networks:
   traefik-public:
