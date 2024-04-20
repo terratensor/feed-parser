@@ -9,8 +9,10 @@ RUN go mod download
 
 COPY . .
 
-ARG INDEX_NOW_KEY
-ENV INDEX_NOW_KEY=${INDEX_NOW_KEY}
+ARG MANTICORE_INDEX
+ENV MANTICORE_INDEX=${MANTICORE_INDEX}
+ARG GENERATOR_DELAY
+ENV GENERATOR_DELAY=${GENERATOR_DELAY}
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o ./feed-static-generator ./cmd/rssfeed
@@ -28,10 +30,5 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/certs/rootca_ssl_rsa2022.cer /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 ENV TZ=Europe/Moscow
-
-ARG MANTICORE_INDEX
-ENV MANTICORE_INDEX=${MANTICORE_INDEX}
-ARG GENERATOR_DELAY
-ENV GENERATOR_DELAY=${GENERATOR_DELAY}
 
 CMD ["./feed-static-generator"]
