@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 )
 
@@ -29,6 +30,21 @@ func main() {
 	entries := feed.NewFeedStorage(manticoreClient)
 
 	duration := 24 * 8 * time.Hour
+
+	wg := &sync.WaitGroup{}
+
+	for {
+		wg.Add(1)
+		go generateFeed(ctx, entries, duration, wg)
+		wg.Wait()
+		time.Sleep(30 * time.Second)
+	}
+}
+
+func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Duration, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
 	limit := entries.Storage.CalculateLimitCount(duration)
 	ch, err := entries.Find(ctx, duration)
 	if err != nil {
@@ -36,7 +52,7 @@ func main() {
 	}
 
 	svoddFeed := &rssfeed.RssFeed{
-		Title:       "Поиск по kremlin.ru, mid.ru, mil.ru",
+		Title:       "Поиск по сайтам Кремля, МИД и Минобороны",
 		Link:        "https://rss.feed.svodd.ru",
 		Description: "Поиск по сайтам Президента России, Министерства иностранных дел Российской Федерации, Министерство обороны Российской Федерации",
 	}
@@ -80,7 +96,7 @@ func main() {
 		log.Printf("failed to write xml: %v", err)
 	}
 
-	log.Printf("🚩 Создан новый rss.xml файл. Всего записей: %d\n", count)
+	log.Printf("🚩 Создан rss.xml. Всего записей: %d\n", count)
 }
 
 func populateAuthorField(author string, resourceID int) string {
