@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,7 +10,21 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+
+	streamXmlBytes, err := os.ReadFile("./static/rss.xml")
+
+	if err != nil {
+		log.Printf("error reading file: %v\n", err)
+	}
+
+	b := bytes.NewBuffer(streamXmlBytes)
+
+	w.Header().Set("Content-type", "application/xml")
+
+	if _, err := b.WriteTo(w); err != nil {
+		log.Printf("error writing response: %v\n", err)
+		fmt.Fprintf(w, "%s", err)
+	}
 }
 
 func main() {
