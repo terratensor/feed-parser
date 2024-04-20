@@ -37,7 +37,7 @@ docker-build-server:
 docker-build-static:
 	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \
     	--tag ${REGISTRY}/feed-static-generator:${IMAGE_TAG} \
-    	--file ./Dockerfile_srv .
+    	--file ./Dockerfile_static .
 
 docker-build-kremlin-indexer:
 	DOCKER_BUILDKIT=1 docker --log-level=debug build --pull --build-arg BUILDKIT_INLINE_CACHE=1 \

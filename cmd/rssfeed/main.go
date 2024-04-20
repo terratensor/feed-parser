@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 )
 
@@ -45,17 +46,19 @@ func main() {
 
 	duration := 24 * 8 * time.Hour
 
-	//wg := &sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 
 	for {
-		generateFeed(ctx, entries, duration)
+		wg.Add(1)
+		go generateFeed(ctx, entries, duration, wg)
+		wg.Wait()
 		time.Sleep(delay)
 	}
 }
 
-func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Duration) {
+func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Duration, wg *sync.WaitGroup) {
 
-	//defer wg.Done()
+	defer wg.Done()
 
 	limit := entries.Storage.CalculateLimitCount(duration)
 	ch, err := entries.Find(ctx, duration)
