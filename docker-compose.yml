@@ -26,9 +26,55 @@ services:
       INDEX_NOW_KEY: 'HnZJOup42wLcpbCJTYA1d1V7afW76gXkjBf1gXQZ9jSO0KRWyH2zRH8qnlF75w3x'
     command: './feed-parser-service'
     deploy:
+      replicas: 0
+      restart_policy:
+        condition: on-failure
+
+  rssfeed:
+    image: ${REGISTRY:-localhost:5002}/feed-static-generator:main-1
+    build:
+      dockerfile: Dockerfile_static
+    environment:
+      MANTICORE_INDEX: 'feed'
+      GENERATOR_DELAY: '60s'
+    restart: always
+    depends_on:
+      - registry
+    networks:
+      - feed-parser-net
+    volumes:
+      - static:/app/static
+    command: './feed-static-generator'
+    deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
+
+  server:
+    image: ${REGISTRY:-localhost:5002}/feed-server:main-1
+    build:
+      dockerfile: Dockerfile_srv
+    ports:
+      - "8000:8000"
+    restart: always
+    depends_on:
+      - registry
+    networks:
+      - traefik-public
+      - feed-parser-net
+    volumes:
+      - static:/app/static
+    command: './feed-server'
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.feed-srv.rule=Host(`rss.localhost`)
+      - traefik.http.routers.feed-srv.entryPoints=http
+      - traefik.http.services.feed-srv.loadBalancer.server.port=8000
 
   kremlin-indexer:
     image: ${REGISTRY:-localhost:5002}/feed-kremlin-indexer:main-1
@@ -39,6 +85,7 @@ services:
     volumes:
       - config:/app/config
     networks:
+      - traefik-public
       - feed-parser-net
     environment:
       CONFIG_PATH: './config/kremlin/local.yaml'
@@ -86,9 +133,11 @@ services:
 
 volumes:
   config:
+  static:
 
 networks:
   traefik-public:
     external: true
   feed-parser-net:
     name: feed-parser-net
+    external: true
