@@ -26,6 +26,23 @@ services:
       INDEX_NOW_KEY: 'HnZJOup42wLcpbCJTYA1d1V7afW76gXkjBf1gXQZ9jSO0KRWyH2zRH8qnlF75w3x'
     command: './feed-parser-service'
     deploy:
+      replicas: 0
+      restart_policy:
+        condition: on-failure
+
+  rssfeed:
+    image: ${REGISTRY:-localhost:5002}/feed-rssfeed-generator:main-1
+    build:
+      dockerfile: Dockerfile_rss
+    restart: always
+    depends_on:
+      - registry
+    networks:
+      - feed-parser-net
+    volumes:
+      - static:/app/static
+    command: './feed-rssfeed-generator'
+    deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
@@ -42,6 +59,7 @@ services:
     depends_on:
       - registry
     networks:
+      - traefik-public
       - feed-parser-net
     volumes:
       - static:/app/static
