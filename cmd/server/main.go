@@ -71,6 +71,7 @@ func logMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 			slog.String("X-Forwarded-Proto", r.Header.Get("X-Forwarded-Proto")),
 			slog.String("X-Forwarded-Server", r.Header.Get("X-Forwarded-Server")),
 			slog.String("X-Real-Ip", r.Header.Get("X-Real-Ip")),
+			slog.String("referer", r.Referer()),
 		)
 		next.ServeHTTP(w, r)
 	})
