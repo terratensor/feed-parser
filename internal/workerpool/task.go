@@ -107,6 +107,10 @@ func process(workerID int, task *Task) {
 
 				timeNow := time.Unix(time.Now().Unix(), 0)
 				splitEntry.UpdatedAt = &timeNow
+				// Фиксируем дату публикации для ресурса МИД для соответствующих языков
+				if e.ResourceID == 2 && (e.Language == "de" || e.Language == "fr" || e.Language == "pt" || e.Language == "es") {
+					e.Published = dbe[0].Published
+				}
 				// пока n меньше, чем всего фрагментов в БД, обновляем, иначе создаем новые
 				if n < len(dbe) {
 					splitEntry.ID = dbe[n].ID

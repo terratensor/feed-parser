@@ -21,7 +21,7 @@ services:
     image: ${REGISTRY}/feed-static-generator:${IMAGE_TAG}
     environment:
       MANTICORE_INDEX: 'feed'
-      GENERATOR_DELAY: '60s'
+      GENERATOR_DELAY: '300s'
     networks:
       - feed-parser-net
     volumes:
