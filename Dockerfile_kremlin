@@ -21,6 +21,8 @@ WORKDIR /app
 COPY --from=builder /app/feed-kremlin-indexer /app/feed-kremlin-indexer
 #COPY --from=builder /app/config /app/config
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Корневой сертификат удостоверяющего центра (УЦ) Минцифры
+COPY --from=builder /app/certs/ /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 ENV TZ=Europe/Moscow
 

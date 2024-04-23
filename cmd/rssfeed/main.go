@@ -96,7 +96,7 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 				PubDate:     rssfeed.AnyTimeFormat(time.RFC1123Z, *e.Published),
 				Author:      populateAuthorField(e.Author, e.ResourceID),
 				Content:     e.Content,
-				Description: e.Summary,
+				Description: populateDescription(e),
 			}
 
 			svoddFeed.Add(item)
@@ -120,6 +120,17 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 	}
 
 	log.Printf("🚩 Создан rss.xml. Всего записей: %d\n", itemCount)
+}
+
+// populateDescription generates description for a feed entry.
+//
+// It takes a feed.Entry as parameter and returns a string.
+func populateDescription(entry feed.Entry) string {
+	description := entry.Summary
+	if description == "" {
+		description = entry.Title
+	}
+	return description
 }
 
 func populateAuthorField(author string, resourceID int) string {
