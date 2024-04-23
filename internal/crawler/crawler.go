@@ -158,8 +158,8 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		if err != nil {
 			count++
 			log.Printf("Crawler Error: %v", err)
-			log.Printf("🔄 try again: %v url: %v", count, entry.Url)
 			if c.AllowURLRevisit && count <= 10 {
+				log.Printf("🔄 try again: %v url: %v", count, entry.Url)
 				continue
 			}
 			return nil, err
