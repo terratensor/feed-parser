@@ -25,7 +25,7 @@ COPY --from=builder /app/feed-parser-service /app/feed-parser-service
 COPY --from=builder /app/config /app/config
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Корневой сертификат удостоверяющего центра (УЦ) Минцифры
-COPY --from=builder /app/certs/rootca_ssl_rsa2022.cer /etc/ssl/certs/
+COPY --from=builder /app/certs/ /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 ENV TZ=Europe/Moscow
 
