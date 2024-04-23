@@ -38,14 +38,17 @@ func (i *Indexer) parseAnnounceItems(link link.Link) ([]feed.Entry, error) {
 				atime := e.ChildText("span.announce__time")
 
 				datetime := fmt.Sprintf("%s %s", adate, atime)
+
 				date, err := time.Parse("02.01.2006 15:04", datetime)
 				if err != nil {
-					log.Printf("cannot parse date: %v", err)
-					date = time.Time{}
+					date, err = time.Parse("2 January 2006 15:04", datetime)
+					if err != nil {
+						log.Printf("cannot parse date: %v", err)
+						date = time.Time{}
+					}
 				}
 
 				entry.Published = &date
-				//log.Printf("Crawling Date %#v", entry.Published.Format("2006-01-02 15:04"))
 
 				// populate url id
 				urlValue := e.ChildAttr("a", "href")
@@ -55,8 +58,6 @@ func (i *Indexer) parseAnnounceItems(link link.Link) ([]feed.Entry, error) {
 					Path:   urlValue,
 				}
 				entry.Url = u.String()
-
-				//log.Printf("Crawling Url %#v", entry.Url)
 
 				// populate title
 				entry.Title = e.ChildText("a")
