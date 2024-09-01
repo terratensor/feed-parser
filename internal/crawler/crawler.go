@@ -2,12 +2,13 @@ package crawler
 
 import (
 	"fmt"
-	"github.com/gocolly/colly/v2"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"log"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/gocolly/colly/v2"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
 )
 
 func VisitMil(entry *feed.Entry) (*feed.Entry, error) {
@@ -71,7 +72,7 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 	c := colly.NewCollector()
 	c.AllowURLRevisit = false
 
-	c.UserAgent = "PostmanRuntime/7.37.0"
+	c.UserAgent = ""
 	//c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
 	c.OnRequest(func(r *colly.Request) {
@@ -82,6 +83,7 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 
 	// HTML elements
 	c.Limit(&colly.LimitRule{
+		Delay:       5 * time.Second,
 		RandomDelay: 10 * time.Second,
 	})
 
