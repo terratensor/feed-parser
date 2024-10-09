@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
-	"github.com/terratensor/feed-parser/internal/rssfeed"
-	"github.com/terratensor/feed-parser/internal/storage/manticore"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/rssfeed"
+	"github.com/terratensor/feed-parser/internal/storage/manticore"
 )
 
 var authorMap = map[int]string{
@@ -86,6 +87,12 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 			link := makeEntryUrl(e.Url, e.Language)
 
 			if utf8.RuneCountInString(e.Title) > 200 {
+				limitCount++
+				continue
+			}
+
+			// Пропускаем все записи, опубликованные на языке отличном от русского
+			if e.Language != "ru" && e.Language != "" {
 				limitCount++
 				continue
 			}
