@@ -1,7 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"log/slog"
+	"net/url"
+	"sync"
+
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/app"
 	"github.com/terratensor/feed-parser/internal/config"
@@ -10,10 +14,6 @@ import (
 	"github.com/terratensor/feed-parser/internal/parser"
 	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/workerpool"
-	"log"
-	"log/slog"
-	"net/url"
-	"sync"
 )
 
 func main() {
@@ -62,7 +62,7 @@ func main() {
 }
 
 func processEntry(e feed.Entry, indexNow *indexnow.IndexNow) {
-	if e.Url != "" {
+	if e.Url != "" && e.Language == "ru" {
 
 		var u = url.URL{
 			Scheme: "https",
@@ -73,9 +73,9 @@ func processEntry(e feed.Entry, indexNow *indexnow.IndexNow) {
 		q.Set("url", e.Url)
 		u.RawQuery = q.Encode()
 
-		if e.Language != "ru" && e.Language != "" {
-			u.Path = fmt.Sprintf("%v/entry", e.Language)
-		}
+		// if e.Language != "ru" && e.Language != "" {
+		// 	u.Path = fmt.Sprintf("%v/entry", e.Language)
+		// }
 
 		err := indexNow.Get(u.String())
 
