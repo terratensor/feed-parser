@@ -28,6 +28,7 @@ func main() {
 	for _, parserCfg := range cfg.Parsers {
 
 		wg.Add(1)
+		fp.UserAgent = parserCfg.UserAgent
 		p := parser.NewParser(parserCfg, *cfg.Delay, *cfg.RandomDelay)
 
 		go p.Run(ch, fp, wg)
