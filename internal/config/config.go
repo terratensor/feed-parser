@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/ilyakaznacheev/cleanenv"
 	"log"
 	"os"
 	"time"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
@@ -12,6 +13,7 @@ type Config struct {
 	Workers         int            `yaml:"workers" env-default:"5"`
 	Delay           *time.Duration `yaml:"delay" env-default:"60s"`
 	RandomDelay     *time.Duration `yaml:"random_delay" env-default:"150s"`
+	UserAgent       string         `yaml:"user_agent" env-default:"Concepts/1.0"`
 	ManticoreIndex  string         `yaml:"manticore_index"`
 	EntryChanBuffer int            `yaml:"entry_chan_buffer" env-default:"20"`
 	Splitter        Splitter       `yaml:"splitter"`
