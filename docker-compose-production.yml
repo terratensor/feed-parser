@@ -13,7 +13,7 @@ services:
     command: './feed-parser-service'
     deploy:
       placement:
-        constraints: [ node.labels.worker == worker-1 ]
+        constraints: [ node.labels.worker == worker-2 ]
       restart_policy:
         condition: on-failure
 
@@ -29,7 +29,7 @@ services:
     command: './feed-static-generator'
     deploy:
       placement:
-        constraints: [ node.labels.worker == worker-1 ]
+        constraints: [ node.labels.worker == worker-2 ]
       restart_policy:
         condition: on-failure
 
@@ -43,7 +43,7 @@ services:
     command: './feed-server'
     deploy:
       placement:
-        constraints: [ node.labels.worker == worker-1 ]
+        constraints: [ node.labels.worker == worker-2 ]
       restart_policy:
         condition: on-failure
       labels:
@@ -68,7 +68,7 @@ services:
     deploy:
       replicas: 0
       placement:
-        constraints: [ node.labels.worker == worker-1 ]
+        constraints: [ node.labels.worker == worker-2 ]
       restart_policy:
         condition: none
 
@@ -85,7 +85,7 @@ services:
     deploy:
       replicas: 0
       placement:
-        constraints: [ node.labels.worker == worker-1 ]
+        constraints: [ node.labels.worker == worker-2 ]
       restart_policy:
         condition: none
 
@@ -101,7 +101,7 @@ services:
     deploy:
       replicas: 0
       placement:
-        constraints: [ node.labels.worker == worker-1 ]
+        constraints: [ node.labels.worker == worker-2 ]
       restart_policy:
         condition: none
 
