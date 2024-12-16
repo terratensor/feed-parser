@@ -53,7 +53,7 @@ func VisitMil(entry *feed.Entry) (*feed.Entry, error) {
 
 	})
 
-	n := 1 + rand.Intn(10)
+	n := 30 + rand.Intn(10)
 	d := time.Duration(n)
 	time.Sleep(d * time.Second)
 
@@ -148,7 +148,7 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		if c.AllowURLRevisit {
 			n = (1+count)*10 + rand.Intn(30)
 		} else {
-			n = (1 + count) * 10
+			n = ((3 + count) * 10) + rand.Intn(10)
 		}
 		d := time.Duration(n)
 		time.Sleep(d * time.Second)
