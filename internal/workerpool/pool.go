@@ -1,7 +1,7 @@
 package workerpool
 
 import (
-	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -47,8 +47,8 @@ func (p *Pool) AddTask(task *Task) {
 func (p *Pool) RunBackground() {
 	go func() {
 		for {
-			fmt.Printf("⌛ Waiting for tasks to come in ...\n")
-			time.Sleep(10 * time.Second)
+			log.Printf("⌛ Waiting for tasks to come in ...\n")
+			time.Sleep(3600 * time.Second)
 		}
 	}()
 
