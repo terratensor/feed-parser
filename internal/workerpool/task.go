@@ -3,16 +3,17 @@ package workerpool
 import (
 	"context"
 	"fmt"
-	"github.com/terratensor/feed-parser/internal/crawler"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
-	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
-	"github.com/terratensor/feed-parser/internal/splitter"
-	"github.com/terratensor/feed-parser/internal/storage/manticore"
 	"log"
 	"log/slog"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/terratensor/feed-parser/internal/crawler"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
+	"github.com/terratensor/feed-parser/internal/splitter"
+	"github.com/terratensor/feed-parser/internal/storage/manticore"
 )
 
 /**
@@ -234,9 +235,9 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 		return true
 	}
 
-	//Для ленты сайта mid language ru. Проверка обновления записи каждый час
+	//Для ленты сайта mid language ru. Проверка обновления записи каждые 6 часов
 	if dbe.Language == "ru" {
-		if dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
+		if dbeTime.Add(6*time.Hour).Sub(eTime) <= 0 && dbe.ResourceID == 2 {
 			log.Printf("dbeTime.Add(1*time.Hour).Sub(eTime) <= 0 && RID == 2, lang %v", dbe.Language)
 			log.Printf("🚩 Url %v updated. DB time %v, current time: %v ", dbe.Url, dbeTime, eTime)
 			return true
