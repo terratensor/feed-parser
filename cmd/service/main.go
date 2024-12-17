@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/app"
@@ -18,6 +19,11 @@ import (
 func main() {
 
 	cfg := config.MustLoad()
+
+	// output current time zone
+	tnow := time.Now()
+	tz, _ := tnow.Zone()
+	log.Printf("Local time zone %s. Service started at %s", tz, tnow.Format("2006-01-02T15:04:05.000 MST"))
 
 	fp := gofeed.NewParser()
 	fp.UserAgent = cfg.UserAgent
