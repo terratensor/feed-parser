@@ -2,17 +2,18 @@ package parser
 
 import (
 	"context"
+	"log"
+	"math/rand"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/htmlnode"
 	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
 	"github.com/terratensor/feed-parser/internal/model/link"
-	"log"
-	"math/rand"
-	"os"
-	"sync"
-	"time"
 )
 
 type Parser struct {
@@ -46,26 +47,26 @@ func (p *Parser) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup) 
 	defer wg.Done()
 
 	for {
-
-		randomDelay := time.Duration(0)
-		if p.RandomDelay != 0 {
-			randomDelay = time.Duration(rand.Int63n(int64(p.RandomDelay)))
-		}
-		time.Sleep(p.Delay + randomDelay)
-
-		log.Printf("started parser for given url: %v", p.Link.Url)
-		entries := p.getEntries(fp)
-		log.Printf("fetched the contents of a given url %v", p.Link.Url)
-
 		select {
 		case <-context.Background().Done():
 			break
 		default:
 		}
 
+		log.Printf("started parser for given url: %v", p.Link.Url)
+		entries := p.getEntries(fp)
+		log.Printf("fetched the contents of a given url %v", p.Link.Url)
+
 		for _, entry := range entries {
 			ch <- entry
 		}
+
+		// Ожидаем установленное время до следующией итерации парсинга
+		randomDelay := time.Duration(0)
+		if p.RandomDelay != 0 {
+			randomDelay = time.Duration(rand.Int63n(int64(p.RandomDelay)))
+		}
+		time.Sleep(p.Delay + randomDelay)
 	}
 }
 

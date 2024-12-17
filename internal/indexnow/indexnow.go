@@ -14,7 +14,10 @@ type IndexNow struct {
 	client *http.Client
 }
 
-func NewIndexNow() *IndexNow {
+func NewIndexNow(enabled bool) *IndexNow {
+	if !enabled {
+		return nil
+	}
 	key := os.Getenv("INDEX_NOW_KEY")
 	client := &http.Client{
 		Timeout: 10 * time.Second,

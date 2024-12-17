@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"log/slog"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/mmcdole/gofeed"
 	"github.com/terratensor/feed-parser/internal/app"
@@ -19,6 +19,11 @@ import (
 func main() {
 
 	cfg := config.MustLoad()
+
+	// output current time zone
+	tnow := time.Now()
+	tz, _ := tnow.Zone()
+	log.Printf("Local time zone %s. Service started at %s", tz, tnow.Format("2006-01-02T15:04:05.000 MST"))
 
 	fp := gofeed.NewParser()
 	fp.UserAgent = cfg.UserAgent
@@ -40,7 +45,8 @@ func main() {
 	sp := splitter.NewSplitter(cfg.Splitter.OptChunkSize, cfg.Splitter.MaxChunkSize)
 	entriesStore := app.NewEntriesStorage(cfg.ManticoreIndex)
 
-	indexNow := indexnow.NewIndexNow()
+	// Передаем в конструктор indexNow параметр enabled инициализируем индексацию
+	indexNow := indexnow.NewIndexNow(cfg.IndexNow)
 
 	go func() {
 		for {
@@ -63,6 +69,10 @@ func main() {
 }
 
 func processEntry(e feed.Entry, indexNow *indexnow.IndexNow) {
+	// если индексация не включена, то выходим
+	if indexNow == nil {
+		return
+	}
 	if e.Url != "" && e.Language == "ru" {
 
 		var u = url.URL{
@@ -81,7 +91,7 @@ func processEntry(e feed.Entry, indexNow *indexnow.IndexNow) {
 		err := indexNow.Get(u.String())
 
 		if err != nil {
-			slog.Error("indexNow error: %v", err)
+			log.Printf("indexNow error: %v", err)
 		}
 	}
 }

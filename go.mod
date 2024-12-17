@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/gocolly/colly/v2 v2.1.0
-	github.com/gorilla/feeds v1.1.2
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/manticoresoftware/manticoresearch-go v1.0.0
 	github.com/mmcdole/gofeed v1.3.0

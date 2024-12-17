@@ -1,7 +1,7 @@
 env: "prod" # Окружение - local, dev или prod
-workers: 2
-delay: 300s
-random_delay: 150s
+workers: 1
+delay: 3600s
+random_delay: 3600s
 manticore_index: feed
 entry_chan_buffer: 20
 splitter:
@@ -17,8 +17,6 @@ parsers:
   - url: "https://mid.ru/ru/rss.php"
     lang: "ru"
     resource_id: 2
-    delay: 60s
-    random_delay: 150s
 #  - url: "https://mid.ru/en/rss.php"
 #    lang: "en"
 #    resource_id: 2
@@ -37,3 +35,4 @@ parsers:
   - url: "https://function.mil.ru/rss_feeds/reference_to_general.htm?contenttype=xml"
     lang: "ru"
     resource_id: 3
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
