@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	openapiclient "github.com/manticoresoftware/manticoresearch-go"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"io"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	openapiclient "github.com/manticoresoftware/manticoresearch-go"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
 )
 
 var _ feed.StorageInterface = &Client{}
@@ -22,8 +23,8 @@ type Response struct {
 		Total         int    `json:"total"`
 		TotalRelation string `json:"total_relation"`
 		Hits          []struct {
-			Id     string `json:"_id"`
-			Score  int    `json:"_score"`
+			Id     int64 `json:"_id"`
+			Score  int   `json:"_score"`
 			Source struct {
 				Title      string `json:"title"`
 				Summary    string `json:"summary"`
@@ -169,13 +170,13 @@ func (c *Client) Insert(ctx context.Context, entry *feed.Entry) (*int64, error) 
 	//marshal into JSON buffer
 	buffer, err := json.Marshal(dbe)
 	if err != nil {
-		return nil, fmt.Errorf("error marshaling JSON: %v\n", err)
+		return nil, fmt.Errorf("error marshaling JSON: %v", err)
 	}
 
 	var doc map[string]interface{}
 	err = json.Unmarshal(buffer, &doc)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling buffer: %v\n", err)
+		return nil, fmt.Errorf("error unmarshaling buffer: %v", err)
 	}
 
 	idr := openapiclient.InsertDocumentRequest{
@@ -186,8 +187,8 @@ func (c *Client) Insert(ctx context.Context, entry *feed.Entry) (*int64, error) 
 	resp, r, err := c.apiClient.IndexAPI.Insert(ctx).InsertDocumentRequest(idr).Execute()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return nil, fmt.Errorf("Error when calling `IndexAPI.Insert``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
+		return nil, fmt.Errorf("error when calling `IndexAPI.Insert``: %v", err)
 	}
 
 	return resp.Id, nil
@@ -214,13 +215,13 @@ func (c *Client) Update(ctx context.Context, entry *feed.Entry) error {
 	//marshal into JSON buffer
 	buffer, err := json.Marshal(dbe)
 	if err != nil {
-		return fmt.Errorf("error marshaling JSON: %v\n", err)
+		return fmt.Errorf("error marshaling JSON: %v", err)
 	}
 
 	var doc map[string]interface{}
 	err = json.Unmarshal(buffer, &doc)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling buffer: %v\n", err)
+		return fmt.Errorf("error unmarshaling buffer: %v", err)
 	}
 
 	idr := openapiclient.InsertDocumentRequest{
@@ -233,10 +234,10 @@ func (c *Client) Update(ctx context.Context, entry *feed.Entry) error {
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return fmt.Errorf("Error when calling `IndexAPI.Replace``: %v\n", err)
+		return fmt.Errorf("error when calling `IndexAPI.Replace``: %v", err)
 	}
 
-	log.Printf("Success `IndexAPI.Replace`: %v\n", r)
+	// log.Printf("Success `IndexAPI.Replace`: %v\n", r)
 
 	return nil
 }
@@ -247,7 +248,7 @@ func (c *Client) Bulk(ctx context.Context, entries *[]feed.Entry) error {
 	for _, e := range *entries {
 		eJSON, err := json.Marshal(e)
 		if err != nil {
-			return fmt.Errorf("error marshaling JSON: %v\n", err)
+			return fmt.Errorf("error marshaling JSON: %v", err)
 		}
 		serializedEntries += string(eJSON) + "\n"
 	}
@@ -257,11 +258,11 @@ func (c *Client) Bulk(ctx context.Context, entries *[]feed.Entry) error {
 	_, r, err := c.apiClient.IndexAPI.Bulk(ctx).Body(serializedEntries).Execute()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return fmt.Errorf("Error when calling `IndexAPI.Insert``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
+		return fmt.Errorf("error when calling `IndexAPI.Insert``: %v", err)
 	}
 	// response from `Insert`: SuccessResponse
-	fmt.Fprintf(os.Stdout, "Success Response from `IndexAPI.Insert`: %v\n", r)
+	fmt.Fprintf(os.Stdout, "Success Response from `IndexAPI.Insert`: %v", r)
 
 	return nil
 }
@@ -279,8 +280,8 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 	resp, r, err := c.apiClient.SearchAPI.Search(ctx).SearchRequest(searchRequest).Execute()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return nil, fmt.Errorf("Error when calling `SearchAPI.Search.Equals``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
+		return nil, fmt.Errorf("error when calling `SearchAPI.Search.Equals``: %v", err)
 	}
 
 	id, err := getEntryID(resp)
@@ -334,34 +335,33 @@ func (c *Client) FindAllByUrl(ctx context.Context, url string) ([]feed.Entry, er
 	resp, r, err := c.apiClient.SearchAPI.Search(ctx).SearchRequest(searchRequest).Execute()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return nil, fmt.Errorf("Error when calling `SearchAPI.Search.Equals``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
+		return nil, fmt.Errorf("error when calling `SearchAPI.Search.Equals``: %v", err)
 	}
 
-	var hits []map[string]interface{}
-	var _id interface{}
+	res := &Response{}
+	respBody, _ := io.ReadAll(r.Body)
+	err = json.Unmarshal(respBody, res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %v", resp)
+	}
 
-	hits = resp.Hits.Hits
+	hits := res.Hits.Hits
 	var entries []feed.Entry
 	for _, hit := range hits {
 
-		_id = hit["_id"]
-		id, err := strconv.ParseInt(_id.(string), 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to parse ID to int64: %v\n", resp)
-		}
+		id := hit.Id
+		sr := hit.Source
 
-		// создаем entry из hit
-		sr := hit["_source"]
 		jsonData, err := json.Marshal(sr)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		var dbe DBEntry
 		err = json.Unmarshal(jsonData, &dbe)
 		if err != nil {
 			log.Fatal(err)
-		}
-		if &dbe == nil {
-			return nil, nil
 		}
 
 		updated := time.Unix(dbe.Updated, 0)
@@ -393,8 +393,7 @@ func (c *Client) FindAllByUrl(ctx context.Context, url string) ([]feed.Entry, er
 }
 
 func makeDBEntry(resp *openapiclient.SearchResponse) *DBEntry {
-	var hits []map[string]interface{}
-	hits = resp.Hits.Hits
+	var hits []map[string]interface{} = resp.Hits.Hits
 
 	// Если слайс Hits пустой (0) значит нет совпадений
 	if len(hits) == 0 {
@@ -405,6 +404,9 @@ func makeDBEntry(resp *openapiclient.SearchResponse) *DBEntry {
 
 	sr := hit["_source"]
 	jsonData, err := json.Marshal(sr)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	var dbe DBEntry
 	err = json.Unmarshal(jsonData, &dbe)
@@ -432,7 +434,7 @@ func getEntryID(resp *openapiclient.SearchResponse) (*int64, error) {
 	id, err := strconv.ParseInt(_id.(string), 10, 64)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse ID to int64: %v\n", resp)
+		return nil, fmt.Errorf("failed to parse ID to int64: %v", resp)
 	}
 
 	return &id, nil
@@ -473,6 +475,10 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 
 			v := &Response{}
 			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				log.Fatalf("Failed reading response body: %v", err)
+				return
+			}
 			if err := json.Unmarshal(data, v); err != nil {
 				log.Fatalf("Parse response failed, reason: %v \n", err)
 				return
@@ -480,6 +486,7 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 
 			for _, hit := range v.Hits.Hits {
 
+				id := hit.Id
 				source := hit.Source
 
 				dbe := &DBEntry{
@@ -496,12 +503,6 @@ func (c *Client) FindAll(ctx context.Context, limit int) (chan feed.Entry, error
 					Created:    source.Created,
 					Chunk:      source.Chunk,
 					UpdatedAt:  source.UpdatedAt,
-				}
-
-				id, err := strconv.ParseInt(hit.Id, 10, 64)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Failed to parse ID to int64: %v\n", hit)
-					return
 				}
 
 				updated := time.Unix(dbe.Updated, 0)
@@ -546,8 +547,7 @@ func getIndexStatus(c *Client) int {
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 
-	var sqlResp []map[string]interface{}
-	sqlResp = resp
+	var sqlResp []map[string]interface{} = resp
 	data := sqlResp[0]["data"].([]interface{})
 
 	for _, rows := range data {
