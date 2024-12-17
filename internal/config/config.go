@@ -14,6 +14,7 @@ type Config struct {
 	Delay           *time.Duration `yaml:"delay" env-default:"60s"`
 	RandomDelay     *time.Duration `yaml:"random_delay" env-default:"150s"`
 	UserAgent       string         `yaml:"user_agent" env-default:"Concepts/1.0"`
+	IndexNow        bool           `yaml:"index_now" env-default:"false"`
 	ManticoreIndex  string         `yaml:"manticore_index"`
 	EntryChanBuffer int            `yaml:"entry_chan_buffer" env-default:"20"`
 	Splitter        Splitter       `yaml:"splitter"`
