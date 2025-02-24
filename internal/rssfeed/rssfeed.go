@@ -24,13 +24,20 @@ type RssFeed struct {
 }
 
 type RssItem struct {
-	XMLName     xml.Name `xml:"item"`
-	Title       string   `xml:"title"`
-	Link        string   `xml:"link"`
-	PubDate     string   `xml:"pubDate"`
-	Author      string   `xml:"author,omitempty"`
-	Content     string   `xml:"yandex:full-text"`
-	Description string   `xml:"description,omitempty"`
+	XMLName     xml.Name   `xml:"item"`
+	Title       string     `xml:"title"`
+	Link        string     `xml:"link"`
+	PubDate     string     `xml:"pubDate"`
+	Author      string     `xml:"author,omitempty"`
+	Content     string     `xml:"yandex:full-text"`
+	Description string     `xml:"description,omitempty"`
+	Source      *RssSource `xml:"source,omitempty"` // Добавляем поле для источника
+}
+
+type RssSource struct {
+	XMLName xml.Name `xml:"source"`    // Указываем XML-тег для элемента <source>
+	URL     string   `xml:"url,attr"`  // URL источника (атрибут)
+	Name    string   `xml:",chardata"` // Название источника (текст внутри элемента)
 }
 
 func (rf *RssFeed) Add(item *RssItem) {

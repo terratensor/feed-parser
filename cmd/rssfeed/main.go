@@ -97,6 +97,7 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 				continue
 			}
 
+			// Создаем элемент RSS
 			item := &rssfeed.RssItem{
 				Title:       e.Title,
 				Link:        link,
@@ -104,6 +105,18 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 				Author:      populateAuthorField(e.Author, e.ResourceID),
 				Content:     e.Content,
 				Description: populateDescription(e),
+			}
+
+			// Если есть URL источника новости, добавляем его в <source>
+			if e.Url != "" {
+				sourceName := "Оригинальный источник" // Значение по умолчанию
+				if name, ok := authorMap[e.ResourceID]; ok {
+					sourceName = name // Используем значение из authorMap
+				}
+				item.Source = &rssfeed.RssSource{
+					URL:  e.Url,      // URL источника новости
+					Name: sourceName, // Название источника из authorMap
+				}
 			}
 
 			svoddFeed.Add(item)
