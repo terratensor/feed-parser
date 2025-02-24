@@ -2,22 +2,25 @@ package mil
 
 import (
 	"fmt"
-	"github.com/gocolly/colly/v2"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"log"
-	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/gocolly/colly/v2"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
 )
 
-func (i *Indexer) parseNewsItems(rawURL string) ([]feed.Entry, error) {
+func (i *Indexer) parseNewsItems(rawURL string, userAgent string) ([]feed.Entry, error) {
 
 	var entries []feed.Entry
 	entry := feed.Entry{}
 
 	c := colly.NewCollector()
 
-	c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+	// Разрешить повторное посещение URL
+	c.AllowURLRevisit = true
+
+	c.UserAgent = userAgent
 
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Crawl on Page", r.URL.String())
@@ -70,16 +73,24 @@ func (i *Indexer) parseNewsItems(rawURL string) ([]feed.Entry, error) {
 		})
 	})
 
-	n := 2 + rand.Intn(2)
-	d := time.Duration(n)
-	time.Sleep(d * time.Second)
+	maxRetries := 10              // Максимальное количество попыток
+	retryDelay := 5 * time.Second // Задержка между попытками
 
-	//c.Visit("https://function.mil.ru:443/news_page/country/more.htm?id=12502939@egNews")
-	err := c.Visit(rawURL)
-	if err != nil {
-		log.Printf("Crawler Error: %v", err)
-		return nil, err
+	for retry := 0; retry < maxRetries; retry++ {
+		err := c.Visit(rawURL)
+		if err == nil {
+			// Успешное соединение, возвращаем результат
+			return entries, nil
+		}
+
+		log.Printf("Crawler Error (attempt %d/%d): %v", retry+1, maxRetries, err)
+
+		if retry < maxRetries-1 {
+			// Если это не последняя попытка, делаем паузу перед повторной попыткой
+			time.Sleep(retryDelay)
+		}
 	}
 
-	return entries, nil
+	// Если все попытки неудачны, возвращаем ошибку
+	return nil, fmt.Errorf("failed to connect after %d attempts", maxRetries)
 }

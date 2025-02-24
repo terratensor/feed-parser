@@ -2,28 +2,32 @@ package mil
 
 import (
 	"context"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
-	"github.com/terratensor/feed-parser/internal/model/link"
 	"log"
 	"math/rand"
 	"net/url"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/terratensor/feed-parser/internal/config"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/model/link"
 )
 
 type Indexer struct {
 	Link        link.Link
 	Delay       time.Duration
 	RandomDelay time.Duration
+	UserAgent   string
 }
 
 // NewIndexer creates a new Indexer with the given URL, delay, and randomDelay.
-func NewIndexer(url link.Link, delay time.Duration, randomDelay time.Duration) *Indexer {
+func NewIndexer(url link.Link, cfg *config.Config) *Indexer {
 	np := &Indexer{
 		Link:        url,
-		Delay:       delay,
-		RandomDelay: randomDelay,
+		Delay:       *cfg.Delay,
+		RandomDelay: *cfg.RandomDelay,
+		UserAgent:   cfg.UserAgent,
 	}
 	return np
 }
@@ -41,7 +45,7 @@ func (i *Indexer) Run(ch chan feed.Entry, wg *sync.WaitGroup) {
 
 		log.Printf("🚩 started parser for given url: %v", i.Link.Url)
 
-		entries, err := i.parseNewsItems(i.Link.Url)
+		entries, err := i.parseNewsItems(i.Link.Url, i.UserAgent)
 		if err != nil {
 			log.Printf("cannot parse url: %v", err)
 			continue
