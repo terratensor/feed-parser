@@ -71,28 +71,28 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 	// Основной фид, содержащий все новости
 	svoddFeed := &rssfeed.RssFeed{
 		Title:       "Поиск по сайтам Кремля, МИД и Минобороны",
-		Link:        "https://rss.feed.svodd.ru",
+		Link:        "https://feed.svodd.ru",
 		Description: "Поиск по сайтам Президента России, Министерства иностранных дел Российской Федерации, Министерство обороны Российской Федерации",
 	}
 
 	// Фид для Кремля (ResourceID = 1)
 	kremlinFeed := &rssfeed.RssFeed{
 		Title:       "Новости Кремля",
-		Link:        "https://rss.feed.svodd.ru/kremlin",
+		Link:        "https://rss.feed.svodd.ru/kremlin-rss.xml",
 		Description: "Новости с сайта Президента Российской Федерации",
 	}
 
 	// Фид для МИД (ResourceID = 2)
 	midFeed := &rssfeed.RssFeed{
 		Title:       "Новости МИД",
-		Link:        "https://rss.feed.svodd.ru/mid",
+		Link:        "https://rss.feed.svodd.ru/mid-rss.xml",
 		Description: "Новости с сайта Министерства иностранных дел Российской Федерации",
 	}
 
 	// Фид для Минобороны (ResourceID = 3)
 	milFeed := &rssfeed.RssFeed{
 		Title:       "Новости Минобороны",
-		Link:        "https://rss.feed.svodd.ru/mil",
+		Link:        "https://rss.feed.svodd.ru/mil-rss.xml",
 		Description: "Новости с сайта Министерства обороны Российской Федерации",
 	}
 
