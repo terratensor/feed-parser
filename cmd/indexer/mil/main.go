@@ -1,6 +1,10 @@
 package main
 
 import (
+	"log"
+	"sync"
+	"time"
+
 	"github.com/terratensor/feed-parser/internal/app"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
@@ -8,12 +12,15 @@ import (
 	"github.com/terratensor/feed-parser/internal/model/link"
 	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/workerpool"
-	"log"
-	"sync"
 )
 
 func main() {
 	cfg := config.MustLoad()
+
+	// output current time zone
+	tnow := time.Now()
+	tz, _ := tnow.Zone()
+	log.Printf("Local time zone %s. Parser started at %s", tz, tnow.Format("2006-01-02T15:04:05.000 MST"))
 
 	//fp.UserAgent = "PostmanRuntime/7.36.3"
 	ch := make(chan feed.Entry, cfg.EntryChanBuffer)
@@ -26,7 +33,7 @@ func main() {
 			Url:        url.Url,
 			Lang:       url.Lang,
 			ResourceID: url.ResourceID,
-		}, *cfg.Delay, *cfg.RandomDelay)
+		}, cfg)
 
 		go milIndexer.Run(ch, wg)
 	}
