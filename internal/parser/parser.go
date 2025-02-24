@@ -79,14 +79,22 @@ func (p *Parser) getEntries(fp *gofeed.Parser) []feed.Entry {
 	if p.Link.ResourceID == 1 {
 		entries = append(entries, p.parseKremlin(p.Link.Url)...)
 	} else {
-		gf, err := fp.ParseURL(p.Link.Url)
+		var gf *gofeed.Feed
+		var err error
+		for i := 0; i < 10; i++ {
+			gf, err = fp.ParseURL(p.Link.Url)
+			if err == nil {
+				break
+			}
+			log.Printf("Attempt %d: ERROR: %v, %v", i+1, err, p.Link.Url)
+			time.Sleep(1 * time.Second)
+		}
 		if err != nil {
-			log.Printf("ERROR: %v, %v", err, p.Link.Url)
+			log.Printf("Failed after 10 attempts: %v, %v", err, p.Link.Url)
 			return nil
 		}
 		entries = append(entries, feed.MakeEntries(gf.Items, p.Link)...)
 	}
-
 	return entries
 }
 
