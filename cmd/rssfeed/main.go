@@ -68,11 +68,34 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 		log.Fatalf("failed to find all entries: %v", err)
 	}
 
+	// Основной фид, содержащий все новости
 	svoddFeed := &rssfeed.RssFeed{
 		Title:       "Поиск по сайтам Кремля, МИД и Минобороны",
 		Link:        "https://rss.feed.svodd.ru",
 		Description: "Поиск по сайтам Президента России, Министерства иностранных дел Российской Федерации, Министерство обороны Российской Федерации",
 	}
+
+	// Фид для Кремля (ResourceID = 1)
+	kremlinFeed := &rssfeed.RssFeed{
+		Title:       "Новости Кремля",
+		Link:        "https://rss.feed.svodd.ru/kremlin",
+		Description: "Новости с сайта Президента Российской Федерации",
+	}
+
+	// Фид для МИД (ResourceID = 2)
+	midFeed := &rssfeed.RssFeed{
+		Title:       "Новости МИД",
+		Link:        "https://rss.feed.svodd.ru/mid",
+		Description: "Новости с сайта Министерства иностранных дел Российской Федерации",
+	}
+
+	// Фид для Минобороны (ResourceID = 3)
+	milFeed := &rssfeed.RssFeed{
+		Title:       "Новости Минобороны",
+		Link:        "https://rss.feed.svodd.ru/mil",
+		Description: "Новости с сайта Министерства обороны Российской Федерации",
+	}
+
 	limitCount := 0
 	itemCount := 0
 	for {
@@ -119,7 +142,19 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 				}
 			}
 
+			// Добавляем новость в основной фид
 			svoddFeed.Add(item)
+
+			// Добавляем новость в соответствующий фид на основе ResourceID
+			switch e.ResourceID {
+			case 1:
+				kremlinFeed.Add(item)
+			case 2:
+				midFeed.Add(item)
+			case 3:
+				milFeed.Add(item)
+			}
+
 			itemCount++
 			limitCount++
 		}
@@ -128,18 +163,28 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 		}
 	}
 
-	file, err := os.Create("./static/rss.xml")
+	// Сохраняем все фиды в файлы
+	saveFeedToFile(svoddFeed, "./static/rss.xml")
+	saveFeedToFile(kremlinFeed, "./static/kremlin-rss.xml")
+	saveFeedToFile(midFeed, "./static/mid-rss.xml")
+	saveFeedToFile(milFeed, "./static/mil-rss.xml")
+
+	log.Printf("🚩 Созданы RSS-фиды. Всего записей: %d\n", itemCount)
+}
+
+// saveFeedToFile сохраняет RSS-фид в файл
+func saveFeedToFile(feed *rssfeed.RssFeed, filename string) {
+	file, err := os.Create(filename)
 	if err != nil {
-		log.Printf("failed to create file: %v", err)
+		log.Printf("failed to create file %s: %v", filename, err)
+		return
 	}
 	defer file.Close()
 
-	err = rssfeed.WriteXML(svoddFeed, file)
+	err = rssfeed.WriteXML(feed, file)
 	if err != nil {
-		log.Printf("failed to write xml: %v", err)
+		log.Printf("failed to write XML to file %s: %v", filename, err)
 	}
-
-	log.Printf("🚩 Создан rss.xml. Всего записей: %d\n", itemCount)
 }
 
 // populateDescription generates description for a feed entry.

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -10,25 +9,46 @@ import (
 	"time"
 )
 
+// Обработчик для основного RSS-фида
 func handlerRssFeed(w http.ResponseWriter, r *http.Request) {
+	serveRssFile(w, "./static/rss.xml")
+}
 
-	streamXmlBytes, err := os.ReadFile("./static/rss.xml")
+// Обработчик для RSS-фида Кремля
+func handlerKremlinFeed(w http.ResponseWriter, r *http.Request) {
+	serveRssFile(w, "./static/kremlin-rss.xml")
+}
 
+// Обработчик для RSS-фида МИД
+func handlerMidFeed(w http.ResponseWriter, r *http.Request) {
+	serveRssFile(w, "./static/mid-rss.xml")
+}
+
+// Обработчик для RSS-фида Минобороны
+func handlerMilFeed(w http.ResponseWriter, r *http.Request) {
+	serveRssFile(w, "./static/mil-rss.xml")
+}
+
+// serveRssFile читает файл и отправляет его как ответ
+func serveRssFile(w http.ResponseWriter, filename string) {
+	streamXmlBytes, err := os.ReadFile(filename)
 	if err != nil {
-		log.Printf("error reading file: %v\n", err)
+		log.Printf("error reading file %s: %v\n", filename, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	b := bytes.NewBuffer(streamXmlBytes)
-
 	w.Header().Set("Content-type", "application/xml")
 
 	if _, err := b.WriteTo(w); err != nil {
-		log.Printf("error writing response: %v\n", err)
-		fmt.Fprintf(w, "%s", err)
+		log.Printf("error writing response for %s: %v\n", filename, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
 func main() {
+	// Настройка временной зоны
 	if tz := os.Getenv("TZ"); tz != "" {
 		var err error
 		time.Local, err = time.LoadLocation(tz)
@@ -37,23 +57,36 @@ func main() {
 		}
 	}
 
-	// output current time zone
+	// Вывод текущей временной зоны
 	tnow := time.Now()
 	tz, _ := tnow.Zone()
 	log.Printf("Local time zone %s. Server started at %s", tz,
 		tnow.Format("2006-01-02T15:04:05.000 MST"))
 	log.Println("Listening on port 8000")
 
+	// Настройка логгера
 	logger := slog.New(
 		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 	)
 
+	// Создание мультиплексора
 	mux := http.NewServeMux()
-	handler := http.HandlerFunc(handlerRssFeed)
-	mux.Handle("/rss.xml", logMiddleware(handler, logger))
+
+	// Обработчики для RSS-фидов
+	mux.Handle("/rss.xml", logMiddleware(http.HandlerFunc(handlerRssFeed), logger))
+	mux.Handle("/kremlin-rss.xml", logMiddleware(http.HandlerFunc(handlerKremlinFeed), logger))
+	mux.Handle("/mid-rss.xml", logMiddleware(http.HandlerFunc(handlerMidFeed), logger))
+	mux.Handle("/mil-rss.xml", logMiddleware(http.HandlerFunc(handlerMilFeed), logger))
+
+	// Обработчик для статических файлов
+	fs := http.FileServer(http.Dir("./static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Запуск сервера
 	log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
+// Middleware для логирования
 func logMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.Info(
