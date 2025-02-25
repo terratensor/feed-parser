@@ -1,13 +1,23 @@
 env: "local" # Окружение - local, dev или prod
 workers: 2
-delay: 2s
-random_delay: 2s
+delay: 60s
+random_delay: 60s
 manticore_index: feed
 entry_chan_buffer: 20
+
 splitter:
   opt_chunk_size: 1800 # оптимальный размер фрагмента контента для поиска, на эти фрагменты будет разбит контент
   max_chunk_size: 3600 # максимальный размер фрагмента контента для поиска
+  
 parsers:
   - url: "https://function.mil.ru/news_page/country.htm?objInBlock=25&f=1&fid=0&blk=10322350"
     lang: "ru"
     resource_id: 3
+    crawler:
+      random_delay_min: 1
+      random_delay_max: 5
+      sleep_min: 1
+      sleep_max: 5
+      user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+      max_retries: 5
+      retry_delay: 2s

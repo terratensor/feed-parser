@@ -31,11 +31,21 @@ func (i *Indexer) parseNewsItems(rawURL string, userAgent string) ([]feed.Entry,
 		e.ForEach("div", func(_ int, e *colly.HTMLElement) {
 			if e.Attr("class") == "newsitem" {
 
-				// populate date
+				// Определяем временную зону GMT-3
+				loc, err := time.LoadLocation("Etc/GMT-3")
+				if err != nil {
+					log.Printf("cannot load location: %v", err)
+					return
+				}
+
+				// Парсим дату
 				date, err := time.Parse("02.01.2006 (15:04)", e.ChildText("span.date"))
 				if err != nil {
 					log.Printf("cannot parse date: %v", err)
 					date = time.Time{}
+				} else {
+					// Преобразуем дату в временную зону GMT-3
+					date = date.In(loc)
 				}
 
 				entry.Published = &date

@@ -48,7 +48,7 @@ func main() {
 		for {
 			task := workerpool.NewTask(func(data interface{}) error {
 				return nil
-			}, <-ch, sp, entriesStore)
+			}, <-ch, sp, entriesStore, cfg)
 			pool.AddTask(task)
 		}
 	}()
