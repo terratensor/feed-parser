@@ -57,7 +57,7 @@ func main() {
 				e := data.(feed.Entry)
 				processEntry(e, indexNow)
 				return nil
-			}, <-ch, sp, entriesStore)
+			}, <-ch, sp, entriesStore, cfg)
 			pool.AddTask(task)
 		}
 	}()

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/crawler"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
@@ -29,6 +30,7 @@ type Task struct {
 	f              func(interface{}) error
 	Splitter       splitter.Splitter
 	EntriesStorage *feed.Entries
+	Config         *config.Config
 }
 
 func NewTaskStorage() *feed.Entries {
@@ -45,12 +47,13 @@ func NewTaskStorage() *feed.Entries {
 	return feed.NewFeedStorage(storage)
 }
 
-func NewTask(f func(interface{}) error, data feed.Entry, splitter *splitter.Splitter, storage *feed.Entries) *Task {
+func NewTask(f func(interface{}) error, data feed.Entry, splitter *splitter.Splitter, storage *feed.Entries, cfg *config.Config) *Task {
 	return &Task{
 		f:              f,
 		Data:           &data,
 		Splitter:       *splitter,
 		EntriesStorage: storage,
+		Config:         cfg,
 	}
 }
 
@@ -65,6 +68,7 @@ func process(workerID int, task *Task) {
 
 	dbe, err := store.Storage.FindAllByUrl(context.Background(), task.Data.Url)
 	e := task.Data
+	cfg := task.Config
 
 	var createdEntry feed.Entry
 
@@ -75,7 +79,7 @@ func process(workerID int, task *Task) {
 	// если записи в БД нет, то создаем записи
 	if dbe == nil || len(dbe) == 0 {
 
-		e, err = visitUrl(e)
+		e, err = visitUrl(e, cfg)
 		if err != nil {
 			log.Println("finishing task processing without updating data in manticoresearch")
 			return
@@ -94,7 +98,7 @@ func process(workerID int, task *Task) {
 	} else {
 		if needUpdate(&dbe[0], *e) {
 			log.Printf("требуется обновление, кол-во фрагментов в БД:, %v", len(dbe))
-			e, err = visitUrl(e)
+			e, err = visitUrl(e, cfg)
 			if err != nil {
 				log.Println("finishing task processing without updating data in manticoresearch")
 				return
@@ -176,7 +180,7 @@ func insertNewEntry(e *feed.Entry, store feed.StorageInterface, logger slog.Logg
 // если crawler вернет ошибку, например в следствии read: connection reset by peer,
 // соединение с сайтом разорвалось, то функция возвращает запись entry без изменений,
 // если crawler вернул новую спарсенную entry (ce), то функция возвращает обновленную entry
-func visitUrl(e *feed.Entry) (*feed.Entry, error) {
+func visitUrl(e *feed.Entry, cfg *config.Config) (*feed.Entry, error) {
 	switch e.ResourceID {
 	case 2:
 		ce, err := crawler.VisitMid(e)
@@ -185,7 +189,11 @@ func visitUrl(e *feed.Entry) (*feed.Entry, error) {
 		}
 		return ce, nil
 	case 3:
-		ce, err := crawler.VisitMil(e)
+		crawlerConfig, err := GetCrawlerConfigByResourceID(cfg, e.ResourceID, e.Language)
+		if err != nil {
+			log.Fatalf("Error getting crawler config: %v", err)
+		}
+		ce, err := crawler.VisitMil(e, crawlerConfig)
 		if err != nil {
 			return e, nil
 		}
@@ -261,4 +269,13 @@ func needUpdate(dbe *feed.Entry, e feed.Entry) bool {
 	}
 
 	return false
+}
+
+func GetCrawlerConfigByResourceID(cfg *config.Config, resourceID int, lang string) (*config.Crawler, error) {
+	for _, parser := range cfg.Parsers {
+		if parser.ResourceID == resourceID && parser.Lang == lang {
+			return &parser.Crawler, nil
+		}
+	}
+	return nil, fmt.Errorf("crawler config not found for resource_id: %d and lang: %s", resourceID, lang)
 }

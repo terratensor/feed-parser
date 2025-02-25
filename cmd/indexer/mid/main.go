@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"sync"
+
 	"github.com/terratensor/feed-parser/internal/app"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
@@ -8,8 +11,6 @@ import (
 	"github.com/terratensor/feed-parser/internal/model/link"
 	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/workerpool"
-	"log"
-	"sync"
 )
 
 func main() {
@@ -42,7 +43,7 @@ func main() {
 		for {
 			task := workerpool.NewTask(func(data interface{}) error {
 				return nil
-			}, <-ch, sp, entriesStore)
+			}, <-ch, sp, entriesStore, cfg)
 			pool.AddTask(task)
 		}
 	}()
