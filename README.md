@@ -64,3 +64,6 @@ urls := []Link{
 ```
 docker exec -it container_id mysqldump -h0 -P9306 feed > feed_backup.sql
 ```
+
+## Конфигурация
+Подробное описание конфигурационного файла проекта можно найти в [документации](config/README.md).

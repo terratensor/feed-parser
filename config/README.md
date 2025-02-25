@@ -61,34 +61,34 @@ manticore_index: feed
 entry_chan_buffer: 20
 
 splitter:
-opt_chunk_size: 1800
-max_chunk_size: 3600
+    opt_chunk_size: 1800
+    max_chunk_size: 3600
 
 parsers:
-- url: "http://kremlin.ru/events/all/feed/"
-lang: "ru"
-resource_id: 1
+    - url: "http://kremlin.ru/events/all/feed/"
+      lang: "ru"
+      resource_id: 1
 
-- url: "http://en.kremlin.ru/events/all/feed"
-lang: "en"
-resource_id: 1
+    - url: "http://en.kremlin.ru/events/all/feed"
+      lang: "en"
+      resource_id: 1
 
-- url: "https://mid.ru/ru/rss.php"
-lang: "ru"
-resource_id: 2
+    - url: "https://mid.ru/ru/rss.php"
+    lang: "ru"
+    resource_id: 2
 
-- url: "https://function.mil.ru/rss_feeds/reference_to_general.htm?contenttype=xml"
-lang: "ru"
-resource_id: 3
-user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
-crawler:
-random_delay_min: 10
-random_delay_max: 30
-sleep_min: 10
-sleep_max: 40
-user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
-max_retries: 5
-retry_delay: 2s
+    - url: "https://function.mil.ru/rss_feeds/reference_to_general.htm?contenttype=xml"
+      lang: "ru"
+      resource_id: 3
+      user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+      crawler:
+        random_delay_min: 10
+        random_delay_max: 30
+        sleep_min: 10
+        sleep_max: 40
+        user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+        max_retries: 5
+        retry_delay: 2s
 ```
 
 ---
@@ -102,8 +102,8 @@ retry_delay: 2s
 import "your-project/config"
 
 func main() {
-cfg := config.MustLoad()
-fmt.Println("Environment:", cfg.Env)
+    cfg := config.MustLoad()
+    fmt.Println("Environment:", cfg.Env)
 }
 ```
 
@@ -113,13 +113,13 @@ fmt.Println("Environment:", cfg.Env)
 ```go
 crawlerConfig, err := config.GetCrawlerConfigByResourceID(cfg, 3, "ru")
 if err != nil {
-log.Fatalf("Error getting crawler config: %v", err)
+    log.Fatalf("Error getting crawler config: %v", err)
 }
 
 // Использование конфигурации
 result, err := VisitMil(entry, *crawlerConfig)
 if err != nil {
-log.Fatalf("Error: %v", err)
+    log.Fatalf("Error: %v", err)
 }
 ```
 
