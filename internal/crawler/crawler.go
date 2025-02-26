@@ -10,10 +10,11 @@ import (
 	"github.com/gocolly/colly/v2"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/metrics"
 )
 
 // VisitMil выполняет парсинг страницы с использованием конфигурации
-func VisitMil(entry *feed.Entry, config *config.Crawler) (*feed.Entry, error) {
+func VisitMil(entry *feed.Entry, config *config.Crawler, metrics *metrics.Metrics) (*feed.Entry, error) {
 	c := colly.NewCollector()
 
 	c.AllowURLRevisit = true
@@ -29,6 +30,8 @@ func VisitMil(entry *feed.Entry, config *config.Crawler) (*feed.Entry, error) {
 		if retryCount < config.MaxRetries {
 			retryCount++
 			log.Printf("Error: %v. Retrying (%d/%d) in %v...", err, retryCount, config.MaxRetries, config.RetryDelay)
+			// Увеличиваем счетчик ошибок с номером попытки
+			metrics.ErrorRequests.WithLabelValues(r.Request.URL.String(), err.Error(), fmt.Sprintf("%d", retryCount)).Inc()
 			time.Sleep(config.RetryDelay)
 			r.Request.Retry()
 		} else {
@@ -79,13 +82,18 @@ func VisitMil(entry *feed.Entry, config *config.Crawler) (*feed.Entry, error) {
 	err := c.Visit(entry.Url)
 	if err != nil {
 		log.Printf("Crawler Error: %v", err)
+		// Увеличиваем счетчик ошибок с номером попытки
+		metrics.ErrorRequests.WithLabelValues(entry.Url, err.Error(), fmt.Sprintf("%d", retryCount)).Inc()
 		return nil, err
 	}
+
+	// Увеличиваем счетчик успешных запросов
+	metrics.SuccessRequests.WithLabelValues(entry.Url, fmt.Sprintf("%d", retryCount)).Inc()
 
 	return entry, nil
 }
 
-func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
+func VisitMid(entry *feed.Entry, config *config.Crawler, metrics *metrics.Metrics) (*feed.Entry, error) {
 
 	c := colly.NewCollector()
 	c.AllowURLRevisit = false
@@ -178,14 +186,24 @@ func VisitMid(entry *feed.Entry) (*feed.Entry, error) {
 		if err != nil {
 			count++
 			log.Printf("Crawler Error: %v", err)
-			if c.AllowURLRevisit && count <= 10 {
+
+			if c.AllowURLRevisit && count <= config.MaxRetries {
+				// Увеличиваем счетчик ошибок с номером попытки
+				metrics.ErrorRequests.WithLabelValues(entry.Url, err.Error(), fmt.Sprintf("%d", count)).Inc()
 				log.Printf("🔄 try again: %v url: %v", count, entry.Url)
 				continue
 			}
+
+			// Увеличиваем счетчик ошибок с номером попытки
+			metrics.ErrorRequests.WithLabelValues(entry.Url, err.Error(), fmt.Sprintf("%d", count)).Inc()
+
 			return nil, err
 		}
 		break
 	}
+
+	// Увеличиваем счетчик успешных запросов
+	metrics.SuccessRequests.WithLabelValues(entry.Url, fmt.Sprintf("%d", count)).Inc()
 
 	return entry, nil
 }

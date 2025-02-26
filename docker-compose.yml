@@ -1,4 +1,3 @@
-version: "3.9"
 services:
 
   registry:
@@ -10,25 +9,27 @@ services:
     networks:
       - feed-parser-net
 
-  # service:
-  #   image: ${REGISTRY:-localhost:5002}/feed-parser-service:main-1
-  #   build:
-  #     dockerfile: Dockerfile
-  #   restart: always
-  #   depends_on:
-  #     - registry
-  #   networks:
-  #     - feed-parser-net
-  #   volumes:
-  #     - config:/app/config
-  #   environment:
-  #     CONFIG_PATH: './config/local.yaml'
-  #     INDEX_NOW_KEY: 'HnZJOup42wLcpbCJTYA1d1V7afW76gXkjBf1gXQZ9jSO0KRWyH2zRH8qnlF75w3x'
-  #   command: './feed-parser-service'
-  #   deploy:
-  #     replicas: 1
-  #     restart_policy:
-  #       condition: on-failure
+  service:
+    image: ${REGISTRY:-localhost:5002}/feed-parser-service:main-1
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    restart: always
+    depends_on:
+      - registry
+    networks:
+      - feed-parser-net
+    volumes:
+      - config:/app/config
+    environment:
+      CONFIG_PATH: './config/local.yaml'
+      INDEX_NOW_KEY: 'HnZJOup42wLcpbCJTYA1d1V7afW76gXkjBf1gXQZ9jSO0KRWyH2zRH8qnlF75w3x'
+    command: './feed-parser-service'
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
   rssfeed:
     image: ${REGISTRY:-localhost:5002}/feed-static-generator:main-1

@@ -3,6 +3,8 @@ services:
 
   service:
     image: ${REGISTRY}/feed-parser-service:${IMAGE_TAG}
+    ports:
+      - "8080:8080"
     networks:
       - feed-parser-net
     volumes:
