@@ -19,7 +19,6 @@ services:
     networks:
       - feed-parser-net
       - svodd-network 
-      - monitoring-internal
     deploy:
       placement:
         constraints: [ node.role == manager ]
