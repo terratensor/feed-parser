@@ -13,6 +13,7 @@ import (
 	"github.com/terratensor/feed-parser/internal/crawler"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
+	"github.com/terratensor/feed-parser/internal/metrics"
 	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/storage/manticore"
 )
@@ -31,6 +32,7 @@ type Task struct {
 	Splitter       splitter.Splitter
 	EntriesStorage *feed.Entries
 	Config         *config.Config
+	metrics        *metrics.Metrics
 }
 
 func NewTaskStorage() *feed.Entries {
@@ -47,13 +49,14 @@ func NewTaskStorage() *feed.Entries {
 	return feed.NewFeedStorage(storage)
 }
 
-func NewTask(f func(interface{}) error, data feed.Entry, splitter *splitter.Splitter, storage *feed.Entries, cfg *config.Config) *Task {
+func NewTask(f func(interface{}) error, data feed.Entry, splitter *splitter.Splitter, storage *feed.Entries, cfg *config.Config, metrics *metrics.Metrics) *Task {
 	return &Task{
 		f:              f,
 		Data:           &data,
 		Splitter:       *splitter,
 		EntriesStorage: storage,
 		Config:         cfg,
+		metrics:        metrics,
 	}
 }
 
@@ -66,12 +69,13 @@ func process(workerID int, task *Task) {
 
 	store := task.EntriesStorage
 
-	dbe, err := store.Storage.FindAllByUrl(context.Background(), task.Data.Url)
 	e := task.Data
 	cfg := task.Config
+	metrics := task.metrics
 
 	var createdEntry feed.Entry
 
+	dbe, err := store.Storage.FindAllByUrl(context.Background(), task.Data.Url)
 	if err != nil {
 		logger.Error("failed find entry by url", sl.Err(err))
 	}
@@ -79,9 +83,9 @@ func process(workerID int, task *Task) {
 	// если записи в БД нет, то создаем записи
 	if dbe == nil || len(dbe) == 0 {
 
-		e, err = visitUrl(e, cfg)
+		e, err = visitUrl(e, cfg, metrics)
 		if err != nil {
-			log.Println("finishing task processing without updating data in manticoresearch")
+			log.Printf("finishing task processing without inserting data in manticoresearch, %v", err)
 			return
 		}
 
@@ -95,12 +99,14 @@ func process(workerID int, task *Task) {
 			}
 		}
 		createdEntry = *e
+		// Увеличиваем счетчик вставок новостей с кол-вом фрагментов
+		metrics.EntitiesInserted.WithLabelValues(e.Url, fmt.Sprintf("%d", len(splitEntries))).Inc()
 	} else {
 		if needUpdate(&dbe[0], *e) {
 			log.Printf("требуется обновление, кол-во фрагментов в БД:, %v", len(dbe))
-			e, err = visitUrl(e, cfg)
+			e, err = visitUrl(e, cfg, metrics)
 			if err != nil {
-				log.Println("finishing task processing without updating data in manticoresearch")
+				log.Printf("finishing task processing without updating data in manticoresearch %v", err)
 				return
 			}
 
@@ -129,6 +135,8 @@ func process(workerID int, task *Task) {
 						return
 					}
 				}
+				// Увеличиваем счетчик обновления новостей с кол-вом фрагментов
+				metrics.EntitiesUpdated.WithLabelValues(e.Url, fmt.Sprintf("%d", len(splitEntries))).Inc()
 			}
 		} else {
 			//log.Printf("nothing to insert, ⌛ waiting incoming tasks…")
@@ -180,20 +188,23 @@ func insertNewEntry(e *feed.Entry, store feed.StorageInterface, logger slog.Logg
 // если crawler вернет ошибку, например в следствии read: connection reset by peer,
 // соединение с сайтом разорвалось, то функция возвращает запись entry без изменений,
 // если crawler вернул новую спарсенную entry (ce), то функция возвращает обновленную entry
-func visitUrl(e *feed.Entry, cfg *config.Config) (*feed.Entry, error) {
+func visitUrl(e *feed.Entry, cfg *config.Config, metrics *metrics.Metrics) (*feed.Entry, error) {
+
+	// получаем конфигурацию для ресурса
+	crawlerConfig, err := GetCrawlerConfigByResourceID(cfg, e.ResourceID, e.Language)
+	if err != nil {
+		return nil, fmt.Errorf("error getting crawler config: %v", err)
+	}
+
 	switch e.ResourceID {
 	case 2:
-		ce, err := crawler.VisitMid(e)
+		ce, err := crawler.VisitMid(e, crawlerConfig, metrics)
 		if err != nil {
 			return nil, err
 		}
 		return ce, nil
 	case 3:
-		crawlerConfig, err := GetCrawlerConfigByResourceID(cfg, e.ResourceID, e.Language)
-		if err != nil {
-			log.Fatalf("Error getting crawler config: %v", err)
-		}
-		ce, err := crawler.VisitMil(e, crawlerConfig)
+		ce, err := crawler.VisitMil(e, crawlerConfig, metrics)
 		if err != nil {
 			return e, nil
 		}

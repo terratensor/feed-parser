@@ -2,15 +2,18 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
 	"github.com/mmcdole/gofeed"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/terratensor/feed-parser/internal/app"
 	"github.com/terratensor/feed-parser/internal/config"
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/indexnow"
+	"github.com/terratensor/feed-parser/internal/metrics"
 	"github.com/terratensor/feed-parser/internal/parser"
 	"github.com/terratensor/feed-parser/internal/splitter"
 	"github.com/terratensor/feed-parser/internal/workerpool"
@@ -25,6 +28,13 @@ func main() {
 	tz, _ := tnow.Zone()
 	log.Printf("Local time zone %s. Service started at %s", tz, tnow.Format("2006-01-02T15:04:05.000 MST"))
 
+	// Создаем метрики
+	m := metrics.NewMetrics()
+	m.Register()
+
+	// Запускаем сервер для метрик
+	startMetricsServer()
+
 	fp := gofeed.NewParser()
 	fp.UserAgent = cfg.UserAgent
 
@@ -34,7 +44,7 @@ func main() {
 	for _, parserCfg := range cfg.Parsers {
 
 		wg.Add(1)
-		p := parser.NewParser(parserCfg, *cfg.Delay, *cfg.RandomDelay)
+		p := parser.NewParser(parserCfg, *cfg.Delay, *cfg.RandomDelay, m)
 
 		go p.Run(ch, fp, wg)
 	}
@@ -57,7 +67,7 @@ func main() {
 				e := data.(feed.Entry)
 				processEntry(e, indexNow)
 				return nil
-			}, <-ch, sp, entriesStore, cfg)
+			}, <-ch, sp, entriesStore, cfg, m)
 			pool.AddTask(task)
 		}
 	}()
@@ -66,6 +76,15 @@ func main() {
 
 	wg.Wait()
 	log.Println("finished, all workers successfully stopped.")
+}
+
+func startMetricsServer() {
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Fatalf("Failed to start metrics server: %v", err)
+		}
+	}()
 }
 
 func processEntry(e feed.Entry, indexNow *indexnow.IndexNow) {

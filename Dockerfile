@@ -29,4 +29,6 @@ COPY --from=builder /app/certs/ /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 ENV TZ=Europe/Moscow
 
+EXPOSE 8080
+
 CMD ["./feed-parser-service"]

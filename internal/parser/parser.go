@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/terratensor/feed-parser/internal/entities/feed"
 	"github.com/terratensor/feed-parser/internal/htmlnode"
 	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
+	"github.com/terratensor/feed-parser/internal/metrics"
 	"github.com/terratensor/feed-parser/internal/model/link"
 )
 
@@ -20,10 +22,11 @@ type Parser struct {
 	Link        link.Link
 	Delay       time.Duration
 	RandomDelay time.Duration
+	metrics     *metrics.Metrics
 }
 
 // NewParser creates a new Parser with the given URL, delay, and randomDelay.
-func NewParser(cfg config.Parser, delay time.Duration, randomDelay time.Duration) *Parser {
+func NewParser(cfg config.Parser, delay time.Duration, randomDelay time.Duration, metrics *metrics.Metrics) *Parser {
 
 	newLink := link.NewLink(cfg.Url, cfg.Lang, cfg.ResourceID, cfg.UserAgent)
 	if cfg.Delay != nil {
@@ -36,6 +39,7 @@ func NewParser(cfg config.Parser, delay time.Duration, randomDelay time.Duration
 		Link:        *newLink,
 		Delay:       delay,
 		RandomDelay: randomDelay,
+		metrics:     metrics,
 	}
 	return np
 }
@@ -84,12 +88,20 @@ func (p *Parser) getEntries(fp *gofeed.Parser) []feed.Entry {
 		for i := 0; i < 10; i++ {
 			gf, err = fp.ParseURL(p.Link.Url)
 			if err == nil {
+				// Увеличиваем счетчик успешных запросов
+				p.metrics.SuccessRequests.WithLabelValues(p.Link.Url, fmt.Sprintf("%d", i+1)).Inc()
 				break
 			}
+			// Увеличиваем счетчик ошибок с номером попытки
+			p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), fmt.Sprintf("%d", i+1)).Inc()
+
 			log.Printf("Attempt %d: ERROR: %v, %v", i+1, err, p.Link.Url)
 			time.Sleep(1 * time.Second)
 		}
 		if err != nil {
+			// Увеличиваем счетчик ошибок с номером попытки
+			p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), fmt.Sprintf("%d", 10)).Inc()
+
 			log.Printf("Failed after 10 attempts: %v, %v", err, p.Link.Url)
 			return nil
 		}
@@ -102,13 +114,19 @@ func (p *Parser) parseKremlin(url string) []feed.Entry {
 
 	node, err := htmlnode.GetTopicBody(url)
 	if os.IsTimeout(err) {
+		// Увеличиваем счетчик ошибок
+		p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
 		log.Printf("server timeout error %v", err)
 		return nil
 	}
 	if err != nil {
+		// Увеличиваем счетчик ошибок
+		p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
 		log.Printf("failed to decode request body %v", sl.Err(err))
 		return nil
 	}
 
+	// Увеличиваем счетчик успешных запросов
+	p.metrics.SuccessRequests.WithLabelValues(p.Link.Url, "0").Inc()
 	return p.parseEntries(node)
 }
