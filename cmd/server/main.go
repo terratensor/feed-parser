@@ -43,17 +43,17 @@ func handlerRssFeed(w http.ResponseWriter, r *http.Request) {
 
 // Обработчик для RSS-фида Кремля
 func handlerKremlinFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, r, "./static/kremlin-rss.xml")
+	serveRssFile(w, r, "./static/kremlin.xml")
 }
 
 // Обработчик для RSS-фида МИД
 func handlerMidFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, r, "./static/mid-rss.xml")
+	serveRssFile(w, r, "./static/mid.xml")
 }
 
 // Обработчик для RSS-фида Минобороны
 func handlerMilFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, r, "./static/mil-rss.xml")
+	serveRssFile(w, r, "./static/mil.xml")
 }
 
 // serveRssFile читает файл и отправляет его как ответ
@@ -108,9 +108,9 @@ func main() {
 
 	// Обработчики для RSS-фидов
 	mux.Handle("/rss.xml", logMiddleware(http.HandlerFunc(handlerRssFeed), logger))
-	mux.Handle("/kremlin-rss.xml", logMiddleware(http.HandlerFunc(handlerKremlinFeed), logger))
-	mux.Handle("/mid-rss.xml", logMiddleware(http.HandlerFunc(handlerMidFeed), logger))
-	mux.Handle("/mil-rss.xml", logMiddleware(http.HandlerFunc(handlerMilFeed), logger))
+	mux.Handle("/kremlin.xml", logMiddleware(http.HandlerFunc(handlerKremlinFeed), logger))
+	mux.Handle("/mid.xml", logMiddleware(http.HandlerFunc(handlerMidFeed), logger))
+	mux.Handle("/mil.xml", logMiddleware(http.HandlerFunc(handlerMilFeed), logger))
 
 	// Обработчик для статических файлов
 	fs := http.FileServer(http.Dir("./static"))

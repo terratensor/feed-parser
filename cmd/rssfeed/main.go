@@ -78,21 +78,21 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 	// Фид для Кремля (ResourceID = 1)
 	kremlinFeed := &rssfeed.RssFeed{
 		Title:       "Новости Кремля",
-		Link:        "https://rss.feed.svodd.ru/kremlin-rss.xml",
+		Link:        "https://rss.feed.svodd.ru/kremlin.xml",
 		Description: "Новости с сайта Президента Российской Федерации",
 	}
 
 	// Фид для МИД (ResourceID = 2)
 	midFeed := &rssfeed.RssFeed{
 		Title:       "Новости МИД",
-		Link:        "https://rss.feed.svodd.ru/mid-rss.xml",
+		Link:        "https://rss.feed.svodd.ru/mid.xml",
 		Description: "Новости с сайта Министерства иностранных дел Российской Федерации",
 	}
 
 	// Фид для Минобороны (ResourceID = 3)
 	milFeed := &rssfeed.RssFeed{
 		Title:       "Новости Минобороны",
-		Link:        "https://rss.feed.svodd.ru/mil-rss.xml",
+		Link:        "https://rss.feed.svodd.ru/mil.xml",
 		Description: "Новости с сайта Министерства обороны Российской Федерации",
 	}
 
@@ -165,9 +165,9 @@ func generateFeed(ctx context.Context, entries *feed.Entries, duration time.Dura
 
 	// Сохраняем все фиды в файлы
 	saveFeedToFile(svoddFeed, "./static/rss.xml")
-	saveFeedToFile(kremlinFeed, "./static/kremlin-rss.xml")
-	saveFeedToFile(midFeed, "./static/mid-rss.xml")
-	saveFeedToFile(milFeed, "./static/mil-rss.xml")
+	saveFeedToFile(kremlinFeed, "./static/kremlin.xml")
+	saveFeedToFile(midFeed, "./static/mid.xml")
+	saveFeedToFile(milFeed, "./static/mil.xml")
 
 	log.Printf("🚩 Созданы RSS-фиды. Всего записей: %d\n", itemCount)
 }
