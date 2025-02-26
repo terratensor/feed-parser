@@ -5,7 +5,6 @@ services:
     image: ${REGISTRY}/feed-parser-service:${IMAGE_TAG}
     networks:
       - feed-parser-net
-      - monitoring-internal
     volumes:
       - config:/app/config
     environment:
@@ -25,7 +24,6 @@ services:
       GENERATOR_DELAY: '300s'
     networks:
       - feed-parser-net
-      - monitoring-internal
     volumes:
       - static:/app/static
     command: './feed-static-generator'
@@ -40,7 +38,6 @@ services:
     networks:
       - traefik-public
       - feed-parser-net
-      - monitoring-internal
     volumes:
       - static:/app/static
     command: './feed-server'
@@ -63,7 +60,6 @@ services:
     image: ${REGISTRY}/feed-kremlin-indexer:${IMAGE_TAG}
     networks:
       - feed-parser-net
-      - monitoring-internal
     volumes:
       - config:/app/config
     environment:
@@ -83,7 +79,6 @@ services:
       - config:/app/config
     networks:
       - feed-parser-net
-      - monitoring-internal
     environment:
       CONFIG_PATH: './config/mil/prod.yaml'
     command: './feed-mil-indexer'
@@ -100,7 +95,6 @@ services:
       - config:/app/config
     networks:
       - feed-parser-net
-      - monitoring-internal
     environment:
       CONFIG_PATH: './config/mid/prod.yaml'
     command: './feed-mid-indexer'
