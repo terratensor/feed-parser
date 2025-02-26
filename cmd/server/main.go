@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"log"
 	"log/slog"
 	"net/http"
@@ -11,40 +10,47 @@ import (
 
 // Обработчик для основного RSS-фида
 func handlerRssFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/rss.xml")
+	serveRssFile(w, r, "./static/rss.xml")
 }
 
 // Обработчик для RSS-фида Кремля
 func handlerKremlinFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/kremlin-rss.xml")
+	serveRssFile(w, r, "./static/kremlin-rss.xml")
 }
 
 // Обработчик для RSS-фида МИД
 func handlerMidFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/mid-rss.xml")
+	serveRssFile(w, r, "./static/mid-rss.xml")
 }
 
 // Обработчик для RSS-фида Минобороны
 func handlerMilFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/mil-rss.xml")
+	serveRssFile(w, r, "./static/mil-rss.xml")
 }
 
 // serveRssFile читает файл и отправляет его как ответ
-func serveRssFile(w http.ResponseWriter, filename string) {
-	streamXmlBytes, err := os.ReadFile(filename)
+func serveRssFile(w http.ResponseWriter, r *http.Request, filename string) {
+	file, err := os.Open(filename)
 	if err != nil {
-		log.Printf("error reading file %s: %v\n", filename, err)
+		if os.IsNotExist(err) {
+			http.Error(w, "File not found", http.StatusNotFound)
+		} else {
+			log.Printf("error opening file %s: %v (client: %s)\n", filename, err, r.RemoteAddr)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		log.Printf("error getting file info %s: %v (client: %s)\n", filename, err, r.RemoteAddr)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	b := bytes.NewBuffer(streamXmlBytes)
-	w.Header().Set("Content-type", "application/xml")
-
-	if _, err := b.WriteTo(w); err != nil {
-		log.Printf("error writing response for %s: %v\n", filename, err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	w.Header().Set("Content-Type", "application/xml")
+	http.ServeContent(w, r, filename, stat.ModTime(), file)
 }
 
 func main() {
@@ -82,8 +88,17 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
+	// Настройка сервера с тайм-аутами
+	server := &http.Server{
+		Addr:         ":8000",
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second, // Время ожидания данных от клиента
+		WriteTimeout: 10 * time.Second, // Время ожидания отправки данных клиенту
+		IdleTimeout:  60 * time.Second, // Время ожидания idle-соединения
+	}
+
 	// Запуск сервера
-	log.Fatal(http.ListenAndServe(":8000", mux))
+	log.Fatal(server.ListenAndServe())
 }
 
 // Middleware для логирования
