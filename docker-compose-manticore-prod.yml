@@ -18,6 +18,8 @@ services:
       - manticore:/var/log/manticore
     networks:
       - feed-parser-net
+      - svodd-network 
+      - monitoring-internal
     deploy:
       placement:
         constraints: [ node.role == manager ]
@@ -36,4 +38,7 @@ networks:
     external: true
   feed-parser-net:
     name: feed-parser-net
+    external: true
+  svodd-network:
+    name: svodd-network
     external: true

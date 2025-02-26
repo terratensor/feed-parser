@@ -6,7 +6,35 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+// Метрики Prometheus
+var (
+	requestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests.",
+		},
+		[]string{"method", "path", "status"},
+	)
+	requestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests.",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "path"},
+	)
+)
+
+// Инициализация метрик
+func init() {
+	prometheus.MustRegister(requestsTotal)
+	prometheus.MustRegister(requestDuration)
+}
 
 // Обработчик для основного RSS-фида
 func handlerRssFeed(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +116,9 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
+	// Обработчик для метрик Prometheus
+	mux.Handle("/metrics", promhttp.Handler())
+
 	// Настройка сервера с тайм-аутами
 	server := &http.Server{
 		Addr:         ":8000",
@@ -104,23 +135,60 @@ func main() {
 // Middleware для логирования
 func logMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Обертка для ResponseWriter, чтобы перехватить код статуса
+		rw := &responseWriterWrapper{w, http.StatusOK}
+
+		// Получаем реальный IP-адрес клиента
+		realIP := r.Header.Get("X-Real-IP")
+		if realIP == "" {
+			// Если X-Real-IP не установлен, используем X-Forwarded-For
+			forwardedFor := r.Header.Get("X-Forwarded-For")
+			if forwardedFor != "" {
+				// Берем первый IP из списка (реальный IP клиента)
+				realIP = forwardedFor
+			} else {
+				// Если заголовки отсутствуют, используем RemoteAddr
+				realIP = r.RemoteAddr
+			}
+		}
+
+		// Логируем начало запроса
 		logger.Info(
-			"request",
+			"request started",
 			slog.String("method", r.Method),
 			slog.String("URL", r.URL.String()),
-			slog.String("proto", r.Proto),
-			slog.String("host", r.Host),
-			slog.String("remote", r.RemoteAddr),
-			slog.String("requestURI", r.RequestURI),
+			slog.String("remote", realIP), // Используем реальный IP
 			slog.String("userAgent", r.UserAgent()),
-			slog.String("X-Forwarded-For", r.Header.Get("X-Forwarded-For")),
-			slog.String("X-Forwarded-Host", r.Header.Get("X-Forwarded-Host")),
-			slog.String("X-Forwarded-Port", r.Header.Get("X-Forwarded-Port")),
-			slog.String("X-Forwarded-Proto", r.Header.Get("X-Forwarded-Proto")),
-			slog.String("X-Forwarded-Server", r.Header.Get("X-Forwarded-Server")),
-			slog.String("X-Real-Ip", r.Header.Get("X-Real-Ip")),
-			slog.String("referer", r.Referer()),
 		)
-		next.ServeHTTP(w, r)
+
+		// Выполняем запрос
+		next.ServeHTTP(rw, r)
+
+		// Логируем завершение запроса
+		logger.Info(
+			"request completed",
+			slog.String("method", r.Method),
+			slog.String("URL", r.URL.String()),
+			slog.String("remote", realIP), // Используем реальный IP
+			slog.Int("status", rw.status),
+			slog.Duration("duration", time.Since(start)),
+		)
+
+		// Обновляем метрики Prometheus
+		requestsTotal.WithLabelValues(r.Method, r.URL.Path, http.StatusText(rw.status)).Inc()
+		requestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(time.Since(start).Seconds())
 	})
+}
+
+// Обертка для ResponseWriter, чтобы перехватить код статуса
+type responseWriterWrapper struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rw *responseWriterWrapper) WriteHeader(code int) {
+	rw.status = code
+	rw.ResponseWriter.WriteHeader(code)
 }
