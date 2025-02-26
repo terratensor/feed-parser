@@ -1,50 +1,84 @@
 package main
 
 import (
-	"bytes"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+// Метрики Prometheus
+var (
+	requestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests.",
+		},
+		[]string{"method", "path", "status"},
+	)
+	requestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests.",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "path"},
+	)
+)
+
+// Инициализация метрик
+func init() {
+	prometheus.MustRegister(requestsTotal)
+	prometheus.MustRegister(requestDuration)
+}
 
 // Обработчик для основного RSS-фида
 func handlerRssFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/rss.xml")
+	serveRssFile(w, r, "./static/rss.xml")
 }
 
 // Обработчик для RSS-фида Кремля
 func handlerKremlinFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/kremlin-rss.xml")
+	serveRssFile(w, r, "./static/kremlin-rss.xml")
 }
 
 // Обработчик для RSS-фида МИД
 func handlerMidFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/mid-rss.xml")
+	serveRssFile(w, r, "./static/mid-rss.xml")
 }
 
 // Обработчик для RSS-фида Минобороны
 func handlerMilFeed(w http.ResponseWriter, r *http.Request) {
-	serveRssFile(w, "./static/mil-rss.xml")
+	serveRssFile(w, r, "./static/mil-rss.xml")
 }
 
 // serveRssFile читает файл и отправляет его как ответ
-func serveRssFile(w http.ResponseWriter, filename string) {
-	streamXmlBytes, err := os.ReadFile(filename)
+func serveRssFile(w http.ResponseWriter, r *http.Request, filename string) {
+	file, err := os.Open(filename)
 	if err != nil {
-		log.Printf("error reading file %s: %v\n", filename, err)
+		if os.IsNotExist(err) {
+			http.Error(w, "File not found", http.StatusNotFound)
+		} else {
+			log.Printf("error opening file %s: %v (client: %s)\n", filename, err, r.RemoteAddr)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		log.Printf("error getting file info %s: %v (client: %s)\n", filename, err, r.RemoteAddr)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	b := bytes.NewBuffer(streamXmlBytes)
-	w.Header().Set("Content-type", "application/xml")
-
-	if _, err := b.WriteTo(w); err != nil {
-		log.Printf("error writing response for %s: %v\n", filename, err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	w.Header().Set("Content-Type", "application/xml")
+	http.ServeContent(w, r, filename, stat.ModTime(), file)
 }
 
 func main() {
@@ -82,30 +116,79 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
+	// Обработчик для метрик Prometheus
+	mux.Handle("/metrics", promhttp.Handler())
+
+	// Настройка сервера с тайм-аутами
+	server := &http.Server{
+		Addr:         ":8000",
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second, // Время ожидания данных от клиента
+		WriteTimeout: 10 * time.Second, // Время ожидания отправки данных клиенту
+		IdleTimeout:  60 * time.Second, // Время ожидания idle-соединения
+	}
+
 	// Запуск сервера
-	log.Fatal(http.ListenAndServe(":8000", mux))
+	log.Fatal(server.ListenAndServe())
 }
 
 // Middleware для логирования
 func logMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Обертка для ResponseWriter, чтобы перехватить код статуса
+		rw := &responseWriterWrapper{w, http.StatusOK}
+
+		// Получаем реальный IP-адрес клиента
+		realIP := r.Header.Get("X-Real-IP")
+		if realIP == "" {
+			// Если X-Real-IP не установлен, используем X-Forwarded-For
+			forwardedFor := r.Header.Get("X-Forwarded-For")
+			if forwardedFor != "" {
+				// Берем первый IP из списка (реальный IP клиента)
+				realIP = forwardedFor
+			} else {
+				// Если заголовки отсутствуют, используем RemoteAddr
+				realIP = r.RemoteAddr
+			}
+		}
+
+		// Логируем начало запроса
 		logger.Info(
-			"request",
+			"request started",
 			slog.String("method", r.Method),
 			slog.String("URL", r.URL.String()),
-			slog.String("proto", r.Proto),
-			slog.String("host", r.Host),
-			slog.String("remote", r.RemoteAddr),
-			slog.String("requestURI", r.RequestURI),
+			slog.String("remote", realIP), // Используем реальный IP
 			slog.String("userAgent", r.UserAgent()),
-			slog.String("X-Forwarded-For", r.Header.Get("X-Forwarded-For")),
-			slog.String("X-Forwarded-Host", r.Header.Get("X-Forwarded-Host")),
-			slog.String("X-Forwarded-Port", r.Header.Get("X-Forwarded-Port")),
-			slog.String("X-Forwarded-Proto", r.Header.Get("X-Forwarded-Proto")),
-			slog.String("X-Forwarded-Server", r.Header.Get("X-Forwarded-Server")),
-			slog.String("X-Real-Ip", r.Header.Get("X-Real-Ip")),
-			slog.String("referer", r.Referer()),
 		)
-		next.ServeHTTP(w, r)
+
+		// Выполняем запрос
+		next.ServeHTTP(rw, r)
+
+		// Логируем завершение запроса
+		logger.Info(
+			"request completed",
+			slog.String("method", r.Method),
+			slog.String("URL", r.URL.String()),
+			slog.String("remote", realIP), // Используем реальный IP
+			slog.Int("status", rw.status),
+			slog.Duration("duration", time.Since(start)),
+		)
+
+		// Обновляем метрики Prometheus
+		requestsTotal.WithLabelValues(r.Method, r.URL.Path, http.StatusText(rw.status)).Inc()
+		requestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(time.Since(start).Seconds())
 	})
+}
+
+// Обертка для ResponseWriter, чтобы перехватить код статуса
+type responseWriterWrapper struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rw *responseWriterWrapper) WriteHeader(code int) {
+	rw.status = code
+	rw.ResponseWriter.WriteHeader(code)
 }

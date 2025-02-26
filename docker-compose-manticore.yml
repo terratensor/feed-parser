@@ -24,6 +24,7 @@ services:
       - manticore:/var/log/manticore
     networks:
       - feed-parser-net
+      - svodd-network 
 
 volumes:
   manticore:
@@ -33,3 +34,5 @@ networks:
     external: true
   feed-parser-net:
     name: feed-parser-net
+  svodd-network:
+    name: svodd-network

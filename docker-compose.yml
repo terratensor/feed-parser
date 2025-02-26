@@ -10,25 +10,25 @@ services:
     networks:
       - feed-parser-net
 
-  service:
-    image: ${REGISTRY:-localhost:5002}/feed-parser-service:main-1
-    build:
-      dockerfile: Dockerfile
-    restart: always
-    depends_on:
-      - registry
-    networks:
-      - feed-parser-net
-    volumes:
-      - config:/app/config
-    environment:
-      CONFIG_PATH: './config/local.yaml'
-      INDEX_NOW_KEY: 'HnZJOup42wLcpbCJTYA1d1V7afW76gXkjBf1gXQZ9jSO0KRWyH2zRH8qnlF75w3x'
-    command: './feed-parser-service'
-    deploy:
-      replicas: 0
-      restart_policy:
-        condition: on-failure
+  # service:
+  #   image: ${REGISTRY:-localhost:5002}/feed-parser-service:main-1
+  #   build:
+  #     dockerfile: Dockerfile
+  #   restart: always
+  #   depends_on:
+  #     - registry
+  #   networks:
+  #     - feed-parser-net
+  #   volumes:
+  #     - config:/app/config
+  #   environment:
+  #     CONFIG_PATH: './config/local.yaml'
+  #     INDEX_NOW_KEY: 'HnZJOup42wLcpbCJTYA1d1V7afW76gXkjBf1gXQZ9jSO0KRWyH2zRH8qnlF75w3x'
+  #   command: './feed-parser-service'
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy:
+  #       condition: on-failure
 
   rssfeed:
     image: ${REGISTRY:-localhost:5002}/feed-static-generator:main-1
@@ -76,68 +76,91 @@ services:
       - traefik.http.routers.feed-srv.entryPoints=http
       - traefik.http.services.feed-srv.loadBalancer.server.port=8000
 
-  kremlin-indexer:
-    image: ${REGISTRY:-localhost:5002}/feed-kremlin-indexer:main-1
-    build:
-      dockerfile: Dockerfile_kremlin
-    depends_on:
-      - registry
-    volumes:
-      - config:/app/config
-    networks:
-      - traefik-public
-      - feed-parser-net
-    environment:
-      CONFIG_PATH: './config/kremlin/local.yaml'
-    command: './feed-kremlin-indexer'
-    deploy:
-      replicas: 0
-      restart_policy:
-        condition: none
+  # kremlin-indexer:
+  #   image: ${REGISTRY:-localhost:5002}/feed-kremlin-indexer:main-1
+  #   build:
+  #     dockerfile: Dockerfile_kremlin
+  #   depends_on:
+  #     - registry
+  #   volumes:
+  #     - config:/app/config
+  #   networks:
+  #     - traefik-public
+  #     - feed-parser-net
+  #   environment:
+  #     CONFIG_PATH: './config/kremlin/local.yaml'
+  #   command: './feed-kremlin-indexer'
+  #   deploy:
+  #     replicas: 0
+  #     restart_policy:
+  #       condition: none
 
-  mil-indexer:
-    image: ${REGISTRY:-localhost:5002}/feed-mil-indexer:main-1
-    build:
-      dockerfile: Dockerfile_mil
-    depends_on:
-      - registry
-    volumes:
-      - config:/app/config
-    networks:
-      - feed-parser-net
-    environment:
-      CONFIG_PATH: './config/mil/local.yaml'
-    command: './feed-mil-indexer'
-    deploy:
-      replicas: 0
-      restart_policy:
-        condition: none
+  # mil-indexer:
+  #   image: ${REGISTRY:-localhost:5002}/feed-mil-indexer:main-1
+  #   build:
+  #     dockerfile: Dockerfile_mil
+  #   depends_on:
+  #     - registry
+  #   volumes:
+  #     - config:/app/config
+  #   networks:
+  #     - feed-parser-net
+  #   environment:
+  #     CONFIG_PATH: './config/mil/local.yaml'
+  #   command: './feed-mil-indexer'
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy:
+  #       condition: none
 
-  mid-indexer:
-    image: ${REGISTRY:-localhost:5002}/feed-mid-indexer:main-1
-    build:
-      dockerfile: Dockerfile_mid
-    depends_on:
-      - registry
+  # mid-indexer:
+  #   image: ${REGISTRY:-localhost:5002}/feed-mid-indexer:main-1
+  #   build:
+  #     dockerfile: Dockerfile_mid
+  #   depends_on:
+  #     - registry
+  #   volumes:
+  #     - config:/app/config
+  #   networks:
+  #     - feed-parser-net
+  #   environment:
+  #     CONFIG_PATH: './config/mid/local.yaml'
+  #   command: './feed-mid-indexer'
+  #   deploy:
+  #     replicas: 0
+  #     restart_policy:
+  #       condition: none
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
     volumes:
-      - config:/app/config
-    networks:
-      - feed-parser-net
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
     environment:
-      CONFIG_PATH: './config/mid/local.yaml'
-    command: './feed-mid-indexer'
-    deploy:
-      replicas: 0
-      restart_policy:
-        condition: none
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
 
 volumes:
   config:
   static:
+  grafana-storage:
 
 networks:
   traefik-public:
     external: true
   feed-parser-net:
     name: feed-parser-net
-    external: true
+    # external: true
