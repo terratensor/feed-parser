@@ -178,8 +178,6 @@ func (p *Parser) parseMil(url string) []feed.Entry {
 		author := "Министерство обороны Российской Федерации"
 		cleanedContent := cleanHTML(item.Text)
 
-		log.Printf("cleanedContent: %v", cleanedContent)
-
 		entry := feed.Entry{
 			Title:      item.Title,
 			Url:        fmt.Sprintf("https://mil.ru/news/%s", item.ID),
