@@ -11,24 +11,19 @@ splitter:
   max_chunk_size: 3600 # максимальный размер фрагмента контента для поиска
 
 parsers:
-  - url: "https://mil.ru/api/ssp-news/v1"
+  - url: "http://kremlin.ru/events/all/feed/"
     lang: "ru"
-    resource_id: 3
-    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+    resource_id: 1
+    user_agent: "SvoddProgram/0.01"
 
-  # - url: "http://kremlin.ru/events/all/feed/"
-  #   lang: "ru"
-  #   resource_id: 1
-  #   user_agent: "SvoddProgram/0.01"
+  - url: "http://en.kremlin.ru/events/all/feed"
+    lang: "en"
+    resource_id: 1
+    user_agent: "SvoddProgram/0.01"
 
-  # - url: "http://en.kremlin.ru/events/all/feed"
-  #   lang: "en"
-  #   resource_id: 1
-  #   user_agent: "SvoddProgram/0.01"
-
-  # - url: "https://mid.ru/ru/rss.php"
-  #   lang: "ru"
-  #   resource_id: 2    
+  - url: "https://mid.ru/ru/rss.php"
+    lang: "ru"
+    resource_id: 2    
 #  - url: "https://mid.ru/en/rss.php"
 #    lang: "en"
 #    resource_id: 2
@@ -57,3 +52,7 @@ parsers:
   #     user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
   #     max_retries: 5
   #     retry_delay: 2s
+  # - url: ""
+  #   lang: "ru"
+  #   resource_id: 3
+  #   user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
