@@ -25,16 +25,31 @@ type Parser struct {
 	metrics     *metrics.Metrics
 }
 
-// NewParser creates a new Parser with the given URL, delay, and randomDelay.
-func NewParser(cfg config.Parser, delay time.Duration, randomDelay time.Duration, metrics *metrics.Metrics) *Parser {
+// NewParser creates a new Parser instance with configuration from both main config and parser-specific config.
+// It initializes a Parser with URL, language, resource ID, user agent, delay settings, and metrics.
+// The delay and random delay values can be overridden by parser-specific config if provided.
+//
+// Parameters:
+//   - cfg: Parser-specific configuration
+//   - mainCfg: Main application configuration
+//   - metrics: Metrics instance for tracking parser performance
+//
+// Returns:
+//   - *Parser: A new configured Parser instance
+func NewParser(cfg config.Parser, mainCfg config.Config, metrics *metrics.Metrics) *Parser {
 
 	newLink := link.NewLink(cfg.Url, cfg.Lang, cfg.ResourceID, cfg.UserAgent)
+
+	delay := *mainCfg.Delay
 	if cfg.Delay != nil {
 		delay = *cfg.Delay
 	}
+
+	randomDelay := *mainCfg.RandomDelay
 	if cfg.RandomDelay != nil {
 		randomDelay = *cfg.RandomDelay
 	}
+
 	np := &Parser{
 		Link:        *newLink,
 		Delay:       delay,
