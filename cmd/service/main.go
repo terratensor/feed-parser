@@ -44,7 +44,7 @@ func main() {
 	for _, parserCfg := range cfg.Parsers {
 
 		wg.Add(1)
-		p := parser.NewParser(parserCfg, *cfg.Delay, *cfg.RandomDelay, m)
+		p := parser.NewParser(parserCfg, *cfg, m)
 
 		go p.Run(ch, fp, wg)
 	}
