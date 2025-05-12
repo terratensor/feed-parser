@@ -2,15 +2,16 @@ package htmlnode
 
 import (
 	"fmt"
-	"golang.org/x/net/html"
 	"log"
 	"net/http"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
-func GetTopicBody(url string) (*html.Node, error) {
+func GetTopicBody(url string, userAgent string) (*html.Node, error) {
 
-	resp, err := call(url)
+	resp, err := call(url, userAgent)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +32,7 @@ func GetTopicBody(url string) (*html.Node, error) {
 // call is a Go function that makes a GET request to the provided URL and returns the response and an error, if any.
 //
 // It takes a string 'url' as a parameter and returns a pointer to http.Response and an error.
-func call(url string) (*http.Response, error) {
+func call(url string, userAgent string) (*http.Response, error) {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
@@ -42,7 +43,7 @@ func call(url string) (*http.Response, error) {
 	}
 
 	// Без user-agent kremlin.ru не отдает данные
-	req.Header.Add("User-Agent", "SvoddProgram/0.01")
+	req.Header.Add("User-Agent", userAgent)
 	resp, err := client.Do(req)
 
 	if err != nil {
