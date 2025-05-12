@@ -83,7 +83,7 @@ func (p *Parser) getEntries(fp *gofeed.Parser) []feed.Entry {
 	if p.Link.ResourceID == 1 {
 		entries = append(entries, p.parseKremlin(p.Link.Url)...)
 	}
-	// Если ресурс ID равен 4, то запускаем новый парсер для mil.ru
+	// Если ресурс ID равен 3, то запускаем новый парсер для mil.ru
 	if p.Link.ResourceID == 3 {
 		entries = append(entries, p.parseMil(p.Link.Url)...)
 	} else {

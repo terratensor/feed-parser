@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"regexp"
 	"strings"
@@ -95,41 +96,67 @@ func normalizeWhitespace(s string) string {
 }
 
 func (p *Parser) parseMil(url string) []feed.Entry {
-	// Создаем новый HTTP-запрос
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		// Увеличиваем счетчик ошибок
-		p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
-		log.Printf("failed to create request: %v", err)
-		return nil
+	var resp *http.Response
+	var body []byte
+	var err error
+
+	// Повторяем до 10 раз
+	for attempt := 1; attempt <= 10; attempt++ {
+		// Создаем новый HTTP-запрос
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
+			log.Printf("failed to create request: %v", err)
+			continue
+		}
+
+		// Устанавливаем User-Agent
+		req.Header.Set("User-Agent", p.Link.UserAgent)
+
+		// Выполняем запрос
+		client := &http.Client{}
+		resp, err = client.Do(req)
+		if err != nil {
+			p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
+			log.Printf("attempt %d: failed to fetch URL: %v", attempt, err)
+
+			// Если это последняя попытка — пишем финальный лог
+			if attempt == 10 {
+				log.Printf("Failed after 10 attempts: %v, %v", err, p.Link.Url)
+			}
+
+			// Ждём перед повторной попыткой
+			time.Sleep(1*time.Second + time.Duration(rand.Intn(2000))*time.Millisecond)
+			continue
+		}
+
+		// Читаем тело ответа
+		body, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
+			log.Printf("attempt %d: failed to read response body: %v", attempt, err)
+
+			if attempt == 10 {
+				log.Printf("Failed after 10 attempts reading body: %v, %v", err, p.Link.Url)
+			}
+
+			time.Sleep(1*time.Second + time.Duration(rand.Intn(2000))*time.Millisecond)
+			continue
+		}
+
+		// Если всё прошло успешно — выходим из цикла
+		break
 	}
 
-	// Устанавливаем User-Agent
-	req.Header.Set("User-Agent", p.Link.UserAgent)
-
-	// Выполняем запрос
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		// Увеличиваем счетчик ошибок
-		p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
-		log.Printf("failed to fetch URL: %v", err)
-		return nil
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		// Увеличиваем счетчик ошибок
-		p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
-		log.Printf("failed to read response body: %v", err)
+	// После 10 неудачных попыток resp может быть nil
+	if body == nil {
 		return nil
 	}
 
 	var response ResponseData
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		// Увеличиваем счетчик ошибок
 		p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
 		log.Printf("failed to unmarshal JSON: %v", err)
 		return nil
@@ -142,7 +169,6 @@ func (p *Parser) parseMil(url string) []feed.Entry {
 		t, err := time.Parse(time.RFC3339, item.Date)
 		// Если не удалось распарсить дату, используем nil
 		if err != nil {
-			// Увеличиваем счетчик ошибок
 			p.metrics.ErrorRequests.WithLabelValues(item.ID, err.Error(), "0").Inc()
 			publishedTime = nil
 		} else {

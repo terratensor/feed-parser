@@ -196,17 +196,10 @@ func visitUrl(e *feed.Entry, cfg *config.Config, metrics *metrics.Metrics) (*fee
 		return nil, fmt.Errorf("error getting crawler config: %v", err)
 	}
 
-	switch e.ResourceID {
-	case 2:
+	if e.ResourceID == 2 {
 		ce, err := crawler.VisitMid(e, crawlerConfig, metrics)
 		if err != nil {
 			return nil, err
-		}
-		return ce, nil
-	case 3:
-		ce, err := crawler.VisitMil(e, crawlerConfig, metrics)
-		if err != nil {
-			return e, nil
 		}
 		return ce, nil
 	}
