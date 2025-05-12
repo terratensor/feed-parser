@@ -2,16 +2,17 @@ package kremlin
 
 import (
 	"context"
-	"github.com/mmcdole/gofeed"
-	"github.com/terratensor/feed-parser/internal/entities/feed"
-	"github.com/terratensor/feed-parser/internal/htmlnode"
-	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
-	"github.com/terratensor/feed-parser/internal/model/link"
 	"log"
 	"math/rand"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/mmcdole/gofeed"
+	"github.com/terratensor/feed-parser/internal/entities/feed"
+	"github.com/terratensor/feed-parser/internal/htmlnode"
+	"github.com/terratensor/feed-parser/internal/lib/logger/sl"
+	"github.com/terratensor/feed-parser/internal/model/link"
 )
 
 type Indexer struct {
@@ -61,7 +62,7 @@ func (i *Indexer) Run(ch chan feed.Entry, fp *gofeed.Parser, wg *sync.WaitGroup)
 		//entries := feed.MakeEntries(gf.Items, *parsedLink)
 
 		// Парсим объект мета со ссылками на следующую станицу
-		node, err := htmlnode.GetTopicBody(url)
+		node, err := htmlnode.GetTopicBody(url, i.Link.UserAgent)
 		if os.IsTimeout(err) {
 			log.Printf("server timeout error %v", err)
 			continue

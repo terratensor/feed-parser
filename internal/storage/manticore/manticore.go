@@ -118,7 +118,6 @@ func New(tbl string) (*Client, error) {
 			Description: "Default Manticore Search HTTP",
 		},
 	}
-	//configuration.ServerURL(1, map[string]string{"URL": "http://manticore:9308"})
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	query := fmt.Sprintf(`show tables like '%v'`, tbl)
@@ -128,19 +127,38 @@ func New(tbl string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	data := resp[0]["data"].([]interface{})
+	log.Printf("resp: %v", resp)
 
-	if len(data) > 0 {
-		myMap := data[0].(map[string]interface{})
-		indexValue := myMap["Index"]
-
-		if indexValue != tbl {
+	// Обрабатываем новый формат ответа
+	if len(resp) > 0 {
+		data, exists := resp[0]["data"]
+		if !exists || data == nil {
+			// Нет данных - таблица не существует, создаем
 			err := createTable(apiClient, tbl)
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			dataArray := data.([]interface{})
+			if len(dataArray) == 0 {
+				// Пустой массив данных - таблица не существует, создаем
+				err := createTable(apiClient, tbl)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				// Проверяем имя таблицы в ответе
+				firstRow := dataArray[0].(map[string]interface{})
+				if tableName, ok := firstRow["Table"].(string); !ok || tableName != tbl {
+					err := createTable(apiClient, tbl)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
 		}
 	} else {
+		// Пустой ответ - таблица не существует, создаем
 		err := createTable(apiClient, tbl)
 		if err != nil {
 			return nil, err

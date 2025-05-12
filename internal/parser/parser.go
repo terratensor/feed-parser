@@ -82,6 +82,10 @@ func (p *Parser) getEntries(fp *gofeed.Parser) []feed.Entry {
 	var entries []feed.Entry
 	if p.Link.ResourceID == 1 {
 		entries = append(entries, p.parseKremlin(p.Link.Url)...)
+	}
+	// Если ресурс ID равен 4, то запускаем новый парсер для mil.ru
+	if p.Link.ResourceID == 3 {
+		entries = append(entries, p.parseMil(p.Link.Url)...)
 	} else {
 		var gf *gofeed.Feed
 		var err error
@@ -112,7 +116,7 @@ func (p *Parser) getEntries(fp *gofeed.Parser) []feed.Entry {
 
 func (p *Parser) parseKremlin(url string) []feed.Entry {
 
-	node, err := htmlnode.GetTopicBody(url)
+	node, err := htmlnode.GetTopicBody(url, p.Link.UserAgent)
 	if os.IsTimeout(err) {
 		// Увеличиваем счетчик ошибок
 		p.metrics.ErrorRequests.WithLabelValues(p.Link.Url, err.Error(), "0").Inc()
