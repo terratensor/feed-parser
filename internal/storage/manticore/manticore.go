@@ -127,7 +127,6 @@ func New(tbl string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("resp: %v", resp)
 
 	// Обрабатываем новый формат ответа
 	if len(resp) > 0 {
@@ -182,10 +181,9 @@ func createTable(apiClient *openapiclient.APIClient, tbl string) error {
 }
 
 func (c *Client) Insert(ctx context.Context, entry *feed.Entry) (*int64, error) {
-
 	dbe := NewDBEntry(entry)
 
-	//marshal into JSON buffer
+	// Marshal into JSON buffer
 	buffer, err := json.Marshal(dbe)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling JSON: %v", err)
@@ -205,11 +203,27 @@ func (c *Client) Insert(ctx context.Context, entry *feed.Entry) (*int64, error) 
 	resp, r, err := c.apiClient.IndexAPI.Insert(ctx).InsertDocumentRequest(idr).Execute()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
-		return nil, fmt.Errorf("error when calling `IndexAPI.Insert``: %v", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", resp)
+		return nil, fmt.Errorf("error when calling `IndexAPI.Insert`: %v", err)
 	}
 
-	return resp.Id, nil
+	// ---- Обработка тела ответа для получения ID ----
+	defer r.Body.Close()
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	var result struct {
+		Id int64 `json:"id"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response body: %v", err)
+	}
+
+	id := result.Id
+	return &id, nil
 }
 
 func (c *Client) Update(ctx context.Context, entry *feed.Entry) error {
