@@ -313,7 +313,8 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
-		return nil, fmt.Errorf("error when calling `SearchAPI.Search.Equals``: %v", err)
+		log.Printf("error when calling `SearchAPI.Search.Equals `FindByUrl``: %v | query: %v", err, query)
+		return nil, fmt.Errorf("error when calling `SearchAPI.Search.Equals `FindByUrl``: %v", err)
 	}
 
 	id, err := getEntryID(resp)
@@ -368,7 +369,8 @@ func (c *Client) FindAllByUrl(ctx context.Context, url string) ([]feed.Entry, er
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
-		return nil, fmt.Errorf("error when calling `SearchAPI.Search.Equals``: %v", err)
+		log.Printf("error when calling `SearchAPI.Search.Equals `FindAllByUrl`: %v | query: %v | limit: %v | sort: %v", err, query, limit, sort)
+		return nil, fmt.Errorf("error when calling `SearchAPI.Search.Equals `FindAllByUrl`: %v", err)
 	}
 
 	res := &Response{}
