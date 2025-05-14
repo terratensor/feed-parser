@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -304,14 +305,30 @@ func (c *Client) FindByUrl(ctx context.Context, url string) (*feed.Entry, error)
 	searchRequest := *openapiclient.NewSearchRequest(c.Index)
 
 	// Perform a search
-	// Пример для запроса фильтра по url
 	filter := map[string]interface{}{"url": url}
 	query := map[string]interface{}{"equals": filter}
-
 	searchRequest.SetQuery(query)
-	resp, r, err := c.apiClient.SearchAPI.Search(ctx).SearchRequest(searchRequest).Execute()
 
-	if err != nil {
+	const maxRetries = 10
+	const retryDelay = 100 * time.Millisecond
+
+	var resp *openapiclient.SearchResponse
+	var r *http.Response
+	var err error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		resp, r, err = c.apiClient.SearchAPI.Search(ctx).SearchRequest(searchRequest).Execute()
+
+		if err == nil {
+			break
+		}
+
+		if attempt < maxRetries-1 {
+			fmt.Fprintf(os.Stderr, "Attempt %d failed: %v\n", attempt+1, err)
+			time.Sleep(retryDelay)
+			continue
+		}
+
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
 		log.Printf("error when calling `SearchAPI.Search.Equals `FindByUrl``: %v | query: %v", err, query)
 		log.Printf("resp: %v", resp)
@@ -367,9 +384,26 @@ func (c *Client) FindAllByUrl(ctx context.Context, url string) ([]feed.Entry, er
 	searchRequest.SetLimit(int32(limit))
 	searchRequest.SetSort(sort)
 
-	resp, r, err := c.apiClient.SearchAPI.Search(ctx).SearchRequest(searchRequest).Execute()
+	const maxRetries = 10
+	const retryDelay = 100 * time.Millisecond
 
-	if err != nil {
+	var resp *openapiclient.SearchResponse
+	var r *http.Response
+	var err error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		resp, r, err = c.apiClient.SearchAPI.Search(ctx).SearchRequest(searchRequest).Execute()
+
+		if err == nil {
+			break
+		}
+
+		if attempt < maxRetries-1 {
+			fmt.Fprintf(os.Stderr, "Attempt %d failed: %v\n", attempt+1, err)
+			time.Sleep(retryDelay)
+			continue
+		}
+
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v", r)
 		log.Printf("error when calling `SearchAPI.Search.Equals `FindAllByUrl`: %v | query: %v | limit: %v | sort: %v", err, query, limit, sort)
 		log.Printf("resp: %v", resp)
@@ -387,7 +421,6 @@ func (c *Client) FindAllByUrl(ctx context.Context, url string) ([]feed.Entry, er
 	hits := res.Hits.Hits
 	var entries []feed.Entry
 	for _, hit := range hits {
-
 		id := hit.Id
 		sr := hit.Source
 
